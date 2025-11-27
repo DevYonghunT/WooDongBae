@@ -12,8 +12,8 @@ export default function CourseCard({ course }: CourseCardProps) {
 
     return (
         <motion.div
-            whileHover={{ y: -5 }}
-            className="group relative flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm transition-shadow duration-300 hover:shadow-xl border border-border"
+            whileHover={{ y: -4 }}
+            className="group relative flex flex-col overflow-hidden rounded-3xl bg-white shadow-sm transition-all duration-300 border border-transparent hover:border-orange-200 hover:shadow-orange-100/50 hover:shadow-lg"
         >
             {/* Image Section */}
             <div className="relative h-48 w-full overflow-hidden">
@@ -21,39 +21,39 @@ export default function CourseCard({ course }: CourseCardProps) {
                     src={course.imageUrl}
                     alt={course.title}
                     fill
-                    className="object-cover transition-transform duration-500 group-hover:scale-110"
+                    className="object-cover transition-transform duration-500 group-hover:scale-105"
                 />
-                <div className="absolute right-3 top-3 rounded-full bg-white/90 px-2 py-1 text-xs font-bold text-text backdrop-blur-sm shadow-sm">
+                <div className="absolute right-3 top-3 rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-stone-800 backdrop-blur-sm shadow-sm">
                     {course.dDay}
                 </div>
             </div>
 
             {/* Content Section */}
-            <div className="flex flex-1 flex-col p-5">
-                <div className="mb-2 flex items-center gap-2 text-xs font-medium text-gray-500">
-                    <span className="rounded-md bg-surface px-2 py-1 text-gray-600 border border-border">
+            <div className="flex flex-1 flex-col p-6">
+                <div className="mb-3 flex items-center gap-2 text-xs font-medium">
+                    <span className="rounded-md bg-stone-100 px-2.5 py-1 text-stone-600">
                         {course.category}
                     </span>
-                    <span>•</span>
-                    <span>{course.target}</span>
+                    <span className="text-stone-300">•</span>
+                    <span className="text-stone-500">{course.target}</span>
                 </div>
 
-                <h3 className="mb-3 text-lg font-bold text-text line-clamp-2 group-hover:text-primary transition-colors">
+                <h3 className="mb-4 text-lg font-bold text-stone-800 line-clamp-2 leading-snug group-hover:text-orange-500 transition-colors">
                     {course.title}
                 </h3>
 
                 <div className="mt-auto flex items-center justify-between">
                     <span
-                        className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${isClosingSoon
-                                ? "bg-red-100 text-red-600"
+                        className={`rounded-full px-3 py-1 text-xs font-bold ${isClosingSoon
+                                ? "bg-red-50 text-red-600"
                                 : isClosed
-                                    ? "bg-gray-100 text-gray-500"
-                                    : "bg-green-100 text-green-600"
+                                    ? "bg-stone-100 text-stone-500"
+                                    : "bg-green-100 text-green-700"
                             }`}
                     >
                         {course.status}
                     </span>
-                    <button className="text-sm font-semibold text-primary hover:underline">
+                    <button className="text-sm font-bold text-orange-500 hover:underline">
                         자세히 보기
                     </button>
                 </div>

@@ -10,7 +10,7 @@ export default function BentoGrid({ courses }: BentoGridProps) {
     return (
         <section className="py-8">
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                <h2 className="mb-8 text-2xl font-bold text-text md:text-3xl">
+                <h2 className="mb-8 text-2xl font-bold text-stone-800 md:text-3xl tracking-tight">
                     🔥 지금 뜨는 인기 강좌
                 </h2>
 

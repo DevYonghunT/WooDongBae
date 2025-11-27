@@ -9,13 +9,21 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        primary: "#FF8A3D",
-        surface: "#F9FAFB",
-        border: "#E5E7EB",
-        text: "#1F2937",
-      },
-      fontFamily: {
-        sans: ['var(--font-noto-sans-kr)', 'sans-serif'],
+        orange: {
+          50: '#fff7ed',
+          100: '#ffedd5',
+          200: '#fed7aa',
+          300: '#fdba74',
+          400: '#fb923c',
+          500: '#f97316', // Primary Brand Color
+          600: '#ea580c',
+        },
+        stone: {
+          50: '#fafaf9',
+          100: '#f5f5f4',
+          600: '#57534e',
+          800: '#292524',
+        },
       },
     },
   },

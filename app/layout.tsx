@@ -22,39 +22,46 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
-      <body className={`${notoSansKr.variable} font-sans bg-white text-gray-900 antialiased`}>
+      <body className={`${notoSansKr.variable} font-sans bg-stone-50 text-stone-700 antialiased`}>
         {/* Header */}
-        <header className="sticky top-0 z-50 w-full border-b border-stone-100 bg-white/90 backdrop-blur-md">
+        <header className="sticky top-0 z-50 w-full border-b border-stone-200 bg-white/90 backdrop-blur-md">
           <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
             {/* Logo */}
-            <Link href="/" className="flex items-center gap-1">
-              <span className="text-2xl font-black text-orange-500 tracking-tighter">우동배</span>
+            <Link href="/" className="flex items-center gap-2 group">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-600 text-white font-bold text-lg group-hover:bg-amber-700 transition-colors">
+                U
+              </div>
+              <span className="text-xl font-bold text-amber-950 tracking-tight group-hover:text-amber-700 transition-colors">우동배</span>
             </Link>
 
             {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center gap-6">
-              <Link href="#" className="text-sm font-medium text-stone-600 hover:text-orange-500 transition-colors">
+            <nav className="hidden md:flex items-center gap-8">
+              <Link href="#" className="text-sm font-medium text-stone-600 hover:text-amber-600 transition-colors">
                 강좌찾기
               </Link>
-              <Link href="#" className="text-sm font-medium text-stone-600 hover:text-orange-500 transition-colors">
+              <Link href="#" className="text-sm font-medium text-stone-600 hover:text-amber-600 transition-colors">
+                내 주변
+              </Link>
+              <Link href="#" className="text-sm font-medium text-stone-600 hover:text-amber-600 transition-colors">
                 커뮤니티
               </Link>
-              <div className="h-4 w-px bg-stone-200"></div>
-              <button className="flex items-center gap-1 text-sm font-medium text-stone-600 hover:text-orange-500 transition-colors">
-                <LogIn className="h-4 w-4" />
-                로그인
-              </button>
-              <button className="rounded-full bg-orange-500 px-5 py-2 text-sm font-bold text-white hover:bg-orange-400 transition-colors shadow-orange-200 shadow-sm">
-                회원가입
-              </button>
+
+              <div className="flex items-center gap-3 pl-4 border-l border-stone-200">
+                <button className="text-sm font-medium text-stone-500 hover:text-stone-900 px-3 py-2">
+                  로그인
+                </button>
+                <button className="rounded-full bg-amber-600 px-5 py-2 text-sm font-bold text-white hover:bg-amber-700 transition-all shadow-md hover:shadow-lg">
+                  회원가입
+                </button>
+              </div>
             </nav>
 
             {/* Mobile Navigation */}
             <div className="flex items-center gap-4 md:hidden">
-              <button className="text-stone-600 hover:text-orange-500">
+              <button className="text-stone-500 hover:text-stone-900">
                 <Search className="h-6 w-6" />
               </button>
-              <button className="text-stone-600 hover:text-orange-500">
+              <button className="text-stone-500 hover:text-stone-900">
                 <Menu className="h-6 w-6" />
               </button>
             </div>

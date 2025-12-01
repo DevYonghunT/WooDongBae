@@ -1,100 +1,145 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { Search } from "lucide-react";
-import { courses } from "@/data/courses";
+import { useState, useMemo, useEffect } from "react";
+import { Search, MapPin, Building2, RotateCcw } from "lucide-react"; // 아이콘 추가
 import BentoGrid from "./BentoGrid";
-import { Course } from "@/types/course"; // 명시적 타입 import
-
-const FILTERS = [
-    "전체", "성인", "초등", "청소년", "유아", "문화예술", "IT", "어학", "인문교양",
-];
+import { Course } from "@/types/course";
+import { getCoursesFromDB } from "@/lib/db-api";
 
 export default function CourseExplorer() {
+    const [courses, setCourses] = useState<Course[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    // 필터 상태
     const [searchTerm, setSearchTerm] = useState("");
-    const [selectedFilter, setSelectedFilter] = useState("전체");
+    const [selectedRegion, setSelectedRegion] = useState("전체 지역");
+    const [selectedOrgan, setSelectedOrgan] = useState("전체 기관");
 
+    // 데이터 로딩
+    useEffect(() => {
+        async function loadData() {
+            const data = await getCoursesFromDB();
+            setCourses(data);
+            setIsLoading(false);
+        }
+        loadData();
+    }, []);
+
+    // 1. 지역 목록 추출 (중복 제거)
+    const regions = useMemo(() => {
+        const list = Array.from(new Set(courses.map(c => c.region || "기타"))).sort();
+        return ["전체 지역", ...list];
+    }, [courses]);
+
+    // 2. 기관 목록 추출 (선택된 지역에 속한 기관만 필터링)
+    const organs = useMemo(() => {
+        let filtered = courses;
+        if (selectedRegion !== "전체 지역") {
+            filtered = courses.filter(c => c.region === selectedRegion);
+        }
+        const list = Array.from(new Set(filtered.map(c => c.institution))).sort();
+        return ["전체 기관", ...list];
+    }, [courses, selectedRegion]);
+
+    // 3. 최종 필터링 (지역 -> 기관 -> 검색어)
     const filteredCourses = useMemo(() => {
-        return courses.filter((course: Course) => {
-            const matchesSearch = course.title
-                .toLowerCase()
-                .includes(searchTerm.toLowerCase());
-            const matchesFilter =
-                selectedFilter === "전체" ||
-                course.target === selectedFilter ||
-                course.category === selectedFilter;
+        return courses.filter((course) => {
+            const matchesRegion = selectedRegion === "전체 지역" || course.region === selectedRegion;
+            const matchesOrgan = selectedOrgan === "전체 기관" || course.institution === selectedOrgan;
+            const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                course.category.includes(searchTerm);
 
-            return matchesSearch && matchesFilter;
+            return matchesRegion && matchesOrgan && matchesSearch;
         });
-    }, [searchTerm, selectedFilter]);
+    }, [courses, selectedRegion, selectedOrgan, searchTerm]);
+
+    // 지역 변경 시 기관 선택 초기화
+    const handleRegionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        setSelectedRegion(e.target.value);
+        setSelectedOrgan("전체 기관");
+    };
 
     return (
         <div className="w-full max-w-7xl mx-auto">
-            {/* Search Bar */}
-            <div className="relative mx-auto max-w-3xl mb-12">
-                <div className="relative flex items-center rounded-full bg-white shadow-xl shadow-gray-200/50 ring-1 ring-gray-200/80 p-2 transition-all focus-within:ring-primary-400 focus-within:shadow-primary-100">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-full text-gray-400 pl-2">
-                        <Search className="h-6 w-6" />
-                    </div>
-                    <input
-                        type="text"
-                        placeholder="배우고 싶은 강좌를 검색해보세요 (예: 도예, 코딩)"
-                        className="h-14 w-full bg-transparent text-lg font-medium text-gray-800 placeholder:text-gray-400 focus:outline-none"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                    <button className="hidden sm:block rounded-full bg-primary-600 px-8 py-3.5 text-base font-bold text-white hover:bg-primary-700 transition-all shadow-md">
-                        검색
-                    </button>
-                </div>
-            </div>
+            {/* Filter & Search Section */}
+            <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-6 mb-12 -mt-8 relative z-10 mx-4 lg:mx-0">
+                <div className="flex flex-col md:flex-row gap-4 items-center">
 
-            {/* Filter Chips */}
-            <div className="mb-14 flex w-full justify-center">
-                <div className="flex gap-2.5 overflow-x-auto pb-4 px-4 scrollbar-hide">
-                    {FILTERS.map((filter) => (
-                        <button
-                            key={filter}
-                            onClick={() => setSelectedFilter(filter)}
-                            className={`whitespace-nowrap rounded-full px-5 py-2.5 text-sm font-semibold transition-all duration-200 border ${selectedFilter === filter
-                                    ? "bg-gray-800 text-white border-gray-800 shadow-md transform scale-105"
-                                    : "bg-white text-gray-600 border-gray-200 hover:bg-primary-50 hover:text-primary-700 hover:border-primary-200"
-                                }`}
+
+                    {/* 1. 지역 선택 */}
+                    <div className="relative w-full md:w-1/4">
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                            <MapPin className="h-5 w-5" />
+                        </div>
+                        <select
+                            className="w-full h-12 pl-10 pr-4 bg-gray-50 border border-gray-200 rounded-xl text-gray-700 font-medium focus:ring-2 focus:ring-primary-400 focus:border-transparent outline-none appearance-none cursor-pointer hover:bg-gray-100 transition-colors"
+                            value={selectedRegion}
+                            onChange={handleRegionChange}
                         >
-                            {filter}
-                        </button>
-                    ))}
+                            {regions.map(r => <option key={r} value={r}>{r}</option>)}
+                        </select>
+                    </div>
+
+                    {/* 2. 기관 선택 */}
+                    <div className="relative w-full md:w-1/4">
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                            <Building2 className="h-5 w-5" />
+                        </div>
+                        <select
+                            className="w-full h-12 pl-10 pr-4 bg-gray-50 border border-gray-200 rounded-xl text-gray-700 font-medium focus:ring-2 focus:ring-primary-400 focus:border-transparent outline-none appearance-none cursor-pointer hover:bg-gray-100 transition-colors"
+                            value={selectedOrgan}
+                            onChange={(e) => setSelectedOrgan(e.target.value)}
+                        >
+                            {organs.map(o => <option key={o} value={o}>{o}</option>)}
+                        </select>
+                    </div>
+
+                    {/* 3. 검색창 */}
+                    <div className="relative w-full md:w-2/4">
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                            <Search className="h-5 w-5" />
+                        </div>
+                        <input
+                            type="text"
+                            placeholder="배우고 싶은 강좌명, 카테고리 검색"
+                            className="w-full h-12 pl-10 pr-4 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-primary-400 focus:border-transparent outline-none transition-all"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+
+                    {/* 초기화 버튼 */}
+                    <button
+                        onClick={() => { setSelectedRegion("전체 지역"); setSelectedOrgan("전체 기관"); setSearchTerm(""); }}
+                        className="p-3 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-xl transition-colors"
+                        title="필터 초기화"
+                    >
+                        <RotateCcw className="h-5 w-5" />
+                    </button>
                 </div>
             </div>
 
             {/* Results Header */}
-            <div className="mb-8 flex items-end gap-3 px-2">
-                <h2 className="text-2xl font-bold text-gray-900 tracking-tight">
-                    🔥 지금 뜨는 인기 강좌
+            <div className="mb-6 px-4 flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-900">
+                    {selectedRegion !== "전체 지역" ? `${selectedRegion} ` : ""}
+                    {selectedOrgan !== "전체 기관" ? `> ${selectedOrgan}` : ""} 강좌 목록
                 </h2>
-                <span className="mb-1.5 text-sm font-medium text-gray-500">
-                    총 {filteredCourses.length}개
+                <span className="text-sm font-medium text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                    {isLoading ? "로딩중..." : `${filteredCourses.length}개 검색됨`}
                 </span>
             </div>
 
-            {/* Grid or Empty State */}
-            {filteredCourses.length > 0 ? (
+            {/* Grid */}
+            {isLoading ? (
+                <div className="text-center py-20 text-gray-500">데이터를 불러오고 있습니다...</div>
+            ) : filteredCourses.length > 0 ? (
                 <BentoGrid courses={filteredCourses} />
             ) : (
-                <div className="flex flex-col items-center justify-center py-32 text-center rounded-3xl bg-white border border-dashed border-gray-300">
-                    <div className="mb-6 text-6xl opacity-80">🤔</div>
-                    <h3 className="text-xl font-bold text-gray-900">
-                        검색 결과가 없어요
-                    </h3>
-                    <p className="mt-2 text-gray-500">
-                        오타가 없는지 확인하거나, 다른 키워드로 검색해보세요.
-                    </p>
-                    <button
-                        onClick={() => { setSearchTerm(""); setSelectedFilter("전체"); }}
-                        className="mt-8 text-primary-600 font-bold hover:underline underline-offset-4"
-                    >
-                        전체 강좌 보기
-                    </button>
+                <div className="flex flex-col items-center justify-center py-24 text-center border-2 border-dashed border-gray-200 rounded-3xl">
+                    <div className="text-6xl mb-4">🔍</div>
+                    <p className="text-lg text-gray-600 font-medium">조건에 맞는 강좌가 없어요.</p>
+                    <p className="text-gray-400 text-sm mt-2">다른 지역이나 기관을 선택해보세요.</p>
                 </div>
             )}
         </div>

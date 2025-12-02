@@ -8,6 +8,7 @@ export interface Course {
     dDay: string;
     institution: string; // organNm (기관명)
     price: string;       // lectureCost (수강료)
+    link: string; // [추가] 수강신청 링크
 
     // [추가된 상세 정보]
     region: string;      // sigunguNm (강서구)

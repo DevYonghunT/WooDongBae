@@ -1,6 +1,13 @@
 import CourseExplorer from "@/components/CourseExplorer";
+import { getRecommendedCourses } from "@/lib/db-api";
+import CourseCard from "@/components/CourseCard";
+import { ThumbsUp } from "lucide-react";
 
-export default function Home() {
+export const dynamic = "force-dynamic"; // 매번 새로운 추천을 위해 동적 렌더링
+
+export default async function Home() {
+  const recommendedCourses = await getRecommendedCourses();
+
   return (
     <div className="flex min-h-screen flex-col">
       {/* Hero Section: 따뜻한 웜톤 그라데이션 */}
@@ -28,6 +35,27 @@ export default function Home() {
       {/* Course Explorer Section */}
       <section className="-mt-12 pb-24 px-4 sm:px-6 lg:px-8">
         <CourseExplorer />
+
+        {/* Recommended Section */}
+        {recommendedCourses.length > 0 && (
+          <div className="max-w-7xl mx-auto mt-24">
+            <div className="mb-8 flex flex-col items-start gap-1">
+              <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                <ThumbsUp className="w-6 h-6 text-primary-500" />
+                놓치면 아쉬운 추천 강좌
+              </h2>
+              <p className="text-gray-500 font-medium">지금 바로 신청 가능한 인기 강좌입니다.</p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {recommendedCourses.map((course) => (
+                <div key={course.id} className="h-full">
+                  <CourseCard course={course} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </section>
     </div>
   );

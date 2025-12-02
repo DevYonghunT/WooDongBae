@@ -2,10 +2,41 @@ import { getCourseById } from "@/lib/db-api";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Calendar, MapPin, User, Users, Clock, Phone, Building2, ChevronLeft, Share2, Heart } from "lucide-react";
+import { Calendar, MapPin, User, Users, Clock, Phone, Building2, ChevronLeft, Heart } from "lucide-react";
+import ShareButton from "@/components/ShareButton"; // [추가]
+import { Metadata } from "next"; // [추가]
 
 interface PageProps {
     params: Promise<{ id: string }>;
+}
+
+// [추가] 동적 메타데이터 생성
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+    const { id } = await params;
+    const course = await getCourseById(id);
+
+    if (!course) {
+        return {
+            title: "강좌를 찾을 수 없습니다",
+        };
+    }
+
+    return {
+        title: `${course.title} | 우동배`,
+        description: `"${course.institution}"에서 진행하는 "${course.category}" 강좌입니다. 수강료: ${course.price}. 우동배에서 자세한 정보를 확인하세요.`,
+        openGraph: {
+            title: `${course.title} | 우동배`,
+            description: `"${course.institution}"에서 진행하는 "${course.category}" 강좌입니다.`,
+            images: [
+                {
+                    url: course.imageUrl,
+                    width: 800,
+                    height: 600,
+                    alt: course.title,
+                },
+            ],
+        },
+    };
 }
 
 export default async function CourseDetailPage({ params }: PageProps) {
@@ -33,9 +64,6 @@ export default async function CourseDetailPage({ params }: PageProps) {
                             목록으로 돌아가기
                         </Link>
                         <div className="flex gap-2">
-                            <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-white rounded-full transition-all">
-                                <Share2 className="w-5 h-5" />
-                            </button>
                             <button className="p-2 text-gray-400 hover:text-rose-500 hover:bg-white rounded-full transition-all">
                                 <Heart className="w-5 h-5" />
                             </button>
@@ -161,15 +189,29 @@ export default async function CourseDetailPage({ params }: PageProps) {
                                     </div>
                                 </div>
 
-                                <button
-                                    className={`w-full py-4 rounded-xl font-bold text-lg shadow-lg shadow-primary-200 transition-all transform active:scale-[0.98] ${isFull
-                                            ? "bg-gray-200 text-gray-400 cursor-not-allowed shadow-none"
-                                            : "bg-primary-600 text-white hover:bg-primary-700 hover:shadow-primary-300"
-                                        }`}
-                                    disabled={isFull}
-                                >
-                                    {isFull ? "접수 마감" : "수강 신청하러 가기"}
-                                </button>
+                                {isFull ? (
+                                    <button
+                                        className="w-full py-4 rounded-xl font-bold text-lg shadow-lg shadow-none bg-gray-200 text-gray-400 cursor-not-allowed transition-all"
+                                        disabled={true}
+                                    >
+                                        접수 마감
+                                    </button>
+                                ) : (
+                                    <a
+                                        href={course.link}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="block w-full"
+                                    >
+                                        <button
+                                            className="w-full py-4 rounded-xl font-bold text-lg shadow-lg shadow-primary-200 transition-all transform active:scale-[0.98] bg-primary-600 text-white hover:bg-primary-700 hover:shadow-primary-300"
+                                        >
+                                            수강 신청하러 가기
+                                        </button>
+                                    </a>
+                                )}
+
+                                <ShareButton course={course} />
 
                                 <p className="text-center text-xs text-gray-400 mt-4">
                                     외부 사이트로 이동하여 신청이 진행됩니다.

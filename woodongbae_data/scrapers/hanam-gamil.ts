@@ -72,7 +72,7 @@ export class HanamGamilScraper implements Scraper {
 
                 // Default values if not found
                 let price = '무료';
-                let place = '하남시가밀도서관';
+                let place = '하남시감일도서관';
                 let time = '';
                 let contact = '';
                 let imageUrl = ''; // Random image later
@@ -114,7 +114,7 @@ export class HanamGamilScraper implements Scraper {
                     status: status,
                     image_url: 'https://picsum.photos/300/200', // Random image
                     d_day: '', // Calculate if needed
-                    institution: '하남시가밀도서관',
+                    institution: '하남시감일도서관',
                     price: price,
                     region: '하남시',
                     place: place,

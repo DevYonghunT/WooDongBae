@@ -95,28 +95,39 @@ export async function GET() {
             return `D-${diffDays}`;
         };
 
-        // 3. 데이터 매핑
+        // 3. 데이터 매핑 (API 데이터를 '통합 DB 스키마'에 맞춤)
         const coursesToUpsert = rawCourses.map((item: any, index: number) => {
-            // 원본 데이터에서 값 추출
+
             const rawStatus = item.lectureStatusNm || item.status || '-';
-            const finalStatus = calculateStatus(rawStatus, item.applyStartYmd, item.applyEndYmd);
+            const status = calculateStatus(rawStatus, item.applyStartYmd, item.applyEndYmd);
+
+            // 날짜 포맷팅 (YYYYMMDD -> YYYY.MM.DD)
+            const fmtDate = (str: string) => str ? str.replace(/(\d{4})(\d{2})(\d{2})/, '$1.$2.$3') : '';
 
             return {
+                // [기본 정보]
                 title: item.lectureNm || item.lecture_nm || '제목 없음',
                 category: item.cateNm || '평생학습',
                 target: item.eduTarget || '전체',
-
-                // [중요] 계산된 최종 상태값 저장
-                status: finalStatus,
-
-                // [중요] Picsum 랜덤 이미지 (index 활용하여 고유 이미지 생성)
+                status: status,
                 image_url: `https://picsum.photos/seed/${index}/800/600`,
-
-                d_day: calculateDday(item.applyEndYmd), // D-Day 계산
+                d_day: calculateDday(item.applyEndYmd),
                 institution: item.organNm || '서울시교육청',
                 price: item.eduFee || '무료',
 
-                // [중요] 상세 정보 활용을 위해 원본 통째로 저장
+                // [추가된 통합 컬럼 매핑] - 여기가 핵심!
+                region: item.sigunguNm || '서울시',  // API의 '구' 정보를 region에 저장
+                place: item.place || '장소 미정',
+                course_date: `${fmtDate(item.lectureStartYmd)} ~ ${fmtDate(item.lectureEndYmd)}`,
+                apply_date: `${fmtDate(item.applyStartYmd)} ~ ${fmtDate(item.applyEndYmd)}`,
+                time: item.dayOfWeek ? `${item.dayOfWeek} ${item.lectureStartTm}~` : '',
+                capacity: Number(item.onApplyNum || 0),
+                contact: item.organTelNo || '',
+                link: item.lectureId
+                    ? `https://everlearning.sen.go.kr/ever/menu/10010/program/30002/lectureDetail.do?lectureId=${item.lectureId}`
+                    : '',
+
+                // 원본 보관 (비상용)
                 raw_data: item
             };
         });

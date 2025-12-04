@@ -23,6 +23,7 @@ export class UniversalAiScraper {
             await page.goto(url, { waitUntil: 'domcontentloaded' });
 
             const pageContent = await page.evaluate(() => {
+                // 불필요한 태그 제거하여 토큰 절약
                 const body = document.body.cloneNode(true) as HTMLElement;
                 const scripts = body.querySelectorAll('script, style, noscript, svg, img, footer, header, nav');
                 scripts.forEach(el => el.remove());
@@ -31,9 +32,9 @@ export class UniversalAiScraper {
 
             console.log("🧠 Gemini에게 데이터 분석 요청 중...");
 
-            // [수정됨] 모델명을 'gemini-1.5-flash-latest'로 변경
-            // (만약 이것도 404가 뜨면 'gemini-pro' 로 변경해보세요)
-            const model = this.genAI.getGenerativeModel({ model: "gemini-pro" });
+            const modelName = process.env.GEMINI_MODEL || "gemini-1.5-flash-latest";
+            console.log(`🧠 Using Gemini model: ${modelName}`);
+            const model = this.genAI.getGenerativeModel({ model: modelName });
 
             const prompt = `
                 You are a data extractor. 
@@ -67,6 +68,7 @@ export class UniversalAiScraper {
             const response = await result.response;
             let text = response.text();
 
+            // 마크다운 제거 (JSON 파싱 오류 방지)
             text = text.replace(/```json/g, '').replace(/```/g, '').trim();
 
             const jsonResult = JSON.parse(text);

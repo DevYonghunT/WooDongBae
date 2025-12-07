@@ -19,54 +19,73 @@ export default function CourseExplorer() {
     const [selectedOrgan, setSelectedOrgan] = useState("전체 기관");
     const [selectedStatus, setSelectedStatus] = useState("전체 상태");
 
-    // 초기 데이터 로딩
     useEffect(() => {
         async function loadData() {
-            const data = await getCoursesFromDB();
-            setCourses(data);
-            setIsLoading(false);
+            try {
+                const data = await getCoursesFromDB();
+                setCourses(data);
+            } catch (error) {
+                console.error("데이터 로딩 실패:", error);
+            } finally {
+                setIsLoading(false);
+            }
         }
         loadData();
     }, []);
 
-    // 1. [지역 목록] 데이터에서 중복 제거하여 추출
+    // 1. [지역 목록] 데이터에서 중복 제거 및 정제
     const regions = useMemo(() => {
-        const list = Array.from(new Set(courses.map(c => c.region || "기타"))).sort();
+        const list = Array.from(new Set(
+            courses
+                .map(c => c.region?.trim()) // 공백 제거
+                .filter(r => r && r !== "") // 빈 값 제거
+        )).sort();
         return ["전체 지역", ...list];
     }, [courses]);
 
-    // 2. [기관 목록] 선택된 지역에 해당하는 기관만 필터링 (Cascading Logic)
+    // 2. [기관 목록] 선택된 지역에 해당하는 기관만 필터링
     const organs = useMemo(() => {
         let filtered = courses;
         if (selectedRegion !== "전체 지역") {
-            filtered = courses.filter(c => c.region === selectedRegion);
+            filtered = courses.filter(c => c.region?.trim() === selectedRegion);
         }
-        const list = Array.from(new Set(filtered.map(c => c.institution))).sort();
+        const list = Array.from(new Set(
+            filtered
+                .map(c => c.institution?.trim())
+                .filter(i => i && i !== "")
+        )).sort();
         return ["전체 기관", ...list];
     }, [courses, selectedRegion]);
 
-    // 3. [최종 필터링] 모든 조건을 조합하여 결과 도출
+    // 3. [최종 필터링]
     const filteredCourses = useMemo(() => {
         return courses.filter((course) => {
-            // 지역 체크
-            const matchesRegion = selectedRegion === "전체 지역" || course.region === selectedRegion;
+            // 지역 체크 (공백 제거 후 비교)
+            const regionMatch = selectedRegion === "전체 지역" || course.region?.trim() === selectedRegion;
 
             // 기관 체크
-            const matchesOrgan = selectedOrgan === "전체 기관" || course.institution === selectedOrgan;
+            const organMatch = selectedOrgan === "전체 기관" || course.institution?.trim() === selectedOrgan;
 
-            // 상태 체크 ('접수중' 선택 시 '마감임박'도 포함하는 센스)
-            const matchesStatus = selectedStatus === "전체 상태" ||
-                (selectedStatus === "접수중" ? (course.status === "접수중" || course.status === "마감임박") : course.status === selectedStatus);
+            // 상태 체크
+            let statusMatch = false;
+            if (selectedStatus === "전체 상태") {
+                statusMatch = true;
+            } else if (selectedStatus === "접수중") {
+                statusMatch = course.status === "접수중" || course.status === "마감임박";
+            } else {
+                statusMatch = course.status === selectedStatus;
+            }
 
-            // 검색어 체크 (제목 or 카테고리)
-            const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                course.category.includes(searchTerm);
+            // 검색어 체크
+            const searchLower = searchTerm.toLowerCase();
+            const searchMatch = !searchTerm ||
+                course.title.toLowerCase().includes(searchLower) ||
+                course.category.toLowerCase().includes(searchLower);
 
-            return matchesRegion && matchesOrgan && matchesStatus && matchesSearch;
+            return regionMatch && organMatch && statusMatch && searchMatch;
         });
     }, [courses, selectedRegion, selectedOrgan, selectedStatus, searchTerm]);
 
-    // 필터 초기화 함수
     const handleReset = () => {
         setSelectedRegion("전체 지역");
         setSelectedOrgan("전체 기관");
@@ -90,14 +109,14 @@ export default function CourseExplorer() {
                             value={selectedRegion}
                             onChange={(e) => {
                                 setSelectedRegion(e.target.value);
-                                setSelectedOrgan("전체 기관"); // 지역 바뀌면 기관 초기화
+                                setSelectedOrgan("전체 기관");
                             }}
                         >
                             {regions.map(r => <option key={r} value={r}>{r}</option>)}
                         </select>
                     </div>
 
-                    {/* ② 기관 선택 (지역 선택에 따라 목록이 바뀜) */}
+                    {/* ② 기관 선택 */}
                     <div className="relative w-full lg:w-1/5">
                         <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                             <Building2 className="h-5 w-5" />
@@ -161,11 +180,14 @@ export default function CourseExplorer() {
                 </span>
             </div>
 
-            {/* 그리드 또는 결과 없음 화면 */}
+            {/* 그리드 */}
             {isLoading ? (
                 <div className="text-center py-20 text-gray-500">데이터를 불러오고 있습니다...</div>
             ) : filteredCourses.length > 0 ? (
-                <BentoGrid courses={filteredCourses} />
+                // [핵심] 여기에 w-full을 주어 그리드가 꽉 차게 함
+                <div className="w-full">
+                    <BentoGrid courses={filteredCourses} />
+                </div>
             ) : (
                 <div className="flex flex-col items-center justify-center py-24 text-center border-2 border-dashed border-gray-200 rounded-3xl">
                     <div className="text-6xl mb-4">🔍</div>

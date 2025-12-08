@@ -89,7 +89,7 @@ export default function RootLayout({
         {/* Footer */}
         <footer className="border-t border-border bg-surface py-12">
           <div className="mx-auto max-w-7xl px-4 text-center text-gray-500 sm:px-6 lg:px-8">
-            <p className="text-sm">© 2024 우동배 (우리 동네 배움터). All rights reserved.</p>
+            <p className="text-sm">© 2025 우동배 (우리 동네 배움터). All rights reserved.</p>
           </div>
         </footer>
         {/* [추가] 맨 위로 가기 버튼 (전역 배치) */}

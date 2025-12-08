@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { Search, MapPin, Building2, RotateCcw, Filter } from "lucide-react";
+import { Search, MapPin, Building2, RotateCcw, Filter, LayoutGrid, List } from "lucide-react";
 import BentoGrid from "./BentoGrid";
 import { Course } from "@/types/course";
 import { getCoursesFromDB } from "@/lib/db-api";
@@ -18,6 +18,9 @@ export default function CourseExplorer() {
     const [selectedRegion, setSelectedRegion] = useState("전체 지역");
     const [selectedOrgan, setSelectedOrgan] = useState("전체 기관");
     const [selectedStatus, setSelectedStatus] = useState("전체 상태");
+
+    // [추가] 뷰 모드 상태 관리
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
 
     useEffect(() => {
         async function loadData() {
@@ -170,14 +173,40 @@ export default function CourseExplorer() {
             </div>
 
             {/* ─── 결과 목록 표시 ─── */}
-            <div className="mb-6 px-4 flex items-center gap-3">
-                <h2 className="text-xl font-bold text-gray-900">
-                    {selectedStatus !== "전체 상태" ? `${selectedStatus} ` : ""}
-                    강좌 목록
-                </h2>
-                <span className="text-sm font-medium text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
-                    {isLoading ? "로딩중..." : `${filteredCourses.length}개`}
-                </span>
+            <div className="mb-6 px-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <h2 className="text-xl font-bold text-gray-900">
+                        {selectedStatus !== "전체 상태" ? `${selectedStatus} ` : ""}
+                        강좌 목록
+                    </h2>
+                    <span className="text-sm font-medium text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                        {isLoading ? "로딩중..." : `${filteredCourses.length}개`}
+                    </span>
+                </div>
+
+                {/* [추가] 뷰 모드 토글 버튼 */}
+                <div className="flex gap-1 bg-gray-100 p-1 rounded-xl">
+                    <button
+                        onClick={() => setViewMode('grid')}
+                        className={`p-2 rounded-lg transition-all ${viewMode === 'grid'
+                            ? "bg-white text-primary-600 shadow-sm"
+                            : "text-gray-400 hover:text-gray-600"
+                            }`}
+                        title="카드형 보기"
+                    >
+                        <LayoutGrid className="w-5 h-5" />
+                    </button>
+                    <button
+                        onClick={() => setViewMode('list')}
+                        className={`p-2 rounded-lg transition-all ${viewMode === 'list'
+                            ? "bg-white text-primary-600 shadow-sm"
+                            : "text-gray-400 hover:text-gray-600"
+                            }`}
+                        title="리스트형 보기"
+                    >
+                        <List className="w-5 h-5" />
+                    </button>
+                </div>
             </div>
 
             {/* 그리드 */}
@@ -186,7 +215,7 @@ export default function CourseExplorer() {
             ) : filteredCourses.length > 0 ? (
                 // [핵심] 여기에 w-full을 주어 그리드가 꽉 차게 함
                 <div className="w-full">
-                    <BentoGrid courses={filteredCourses} />
+                    <BentoGrid courses={filteredCourses} viewMode={viewMode} />
                 </div>
             ) : (
                 <div className="flex flex-col items-center justify-center py-24 text-center border-2 border-dashed border-gray-200 rounded-3xl">

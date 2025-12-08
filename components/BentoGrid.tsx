@@ -4,16 +4,19 @@ import { motion, AnimatePresence } from "framer-motion";
 
 interface BentoGridProps {
     courses: Course[];
+    viewMode?: 'grid' | 'list';
 }
 
-export default function BentoGrid({ courses }: BentoGridProps) {
+export default function BentoGrid({ courses, viewMode = 'grid' }: BentoGridProps) {
     return (
         <section className="py-4">
-            {/* [수정] max-w 등은 상위에서 제어하므로 여기선 제거하거나 w-full 유지 */}
             <div className="w-full">
                 <motion.div
                     layout
-                    className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4"
+                    className={viewMode === 'grid'
+                        ? "grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4"
+                        : "flex flex-col gap-4"
+                    }
                 >
                     <AnimatePresence mode="popLayout">
                         {courses.map((course, index) => (
@@ -24,14 +27,12 @@ export default function BentoGrid({ courses }: BentoGridProps) {
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.9 }}
                                 transition={{ duration: 0.2 }}
-                                // 첫 번째, 두 번째 아이템 크게 보여주는 로직은 유지하되, 
-                                // 데이터가 적을 때 깨지지 않도록 조건 강화
-                                className={`h-full ${(index === 0 || index === 1) && courses.length > 2
+                                className={`h-full ${viewMode === 'grid' && (index === 0 || index === 1) && courses.length > 2
                                         ? "sm:col-span-2"
-                                        : "col-span-1"
+                                        : "col-span-1 w-full"
                                     }`}
                             >
-                                <CourseCard course={course} />
+                                <CourseCard course={course} viewMode={viewMode} />
                             </motion.div>
                         ))}
                     </AnimatePresence>

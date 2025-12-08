@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Calendar, MapPin, User, Users, Clock, Phone, Building2, ChevronLeft, Heart } from "lucide-react";
 import ShareButton from "@/components/ShareButton"; // [추가]
+import KakaoMap from "@/components/KakaoMap"; // [추가]
 import { Metadata } from "next"; // [추가]
 
 interface PageProps {
@@ -103,10 +104,16 @@ export default async function CourseDetailPage({ params }: PageProps) {
                             </h1>
 
                             <div className="flex items-center gap-3 text-gray-600 font-medium">
-                                <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-xl border border-gray-200 shadow-sm">
-                                    <Building2 className="w-5 h-5 text-gray-400" />
-                                    <span>{course.institution}</span>
-                                </div>
+                                <a
+                                    href={course.link}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-2 bg-white px-4 py-2 rounded-xl border border-gray-200 shadow-sm transition-all duration-200 group hover:border-primary-200 hover:shadow-md cursor-pointer"
+                                >
+                                    <Building2 className="w-5 h-5 text-gray-400 group-hover:text-primary-500 transition-colors" />
+                                    <span className="group-hover:text-primary-700 transition-colors">{course.institution}</span>
+                                    <span className="text-xs text-gray-400 group-hover:text-primary-400 transition-colors ml-1">(바로가기 ↗)</span>
+                                </a>
                             </div>
                         </div>
                     </div>
@@ -146,15 +153,14 @@ export default async function CourseDetailPage({ params }: PageProps) {
                             </p>
                         </div>
 
+
                         {/* 위치 정보 (지도 대체 UI) */}
                         <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
                             <span className="w-1.5 h-6 bg-primary-500 rounded-full"></span>
                             오시는 길
                         </h2>
-                        <div className="bg-stone-100 rounded-2xl h-64 flex flex-col items-center justify-center text-gray-400 border border-stone-200">
-                            <MapPin className="w-10 h-10 mb-2 opacity-50" />
-                            <p className="font-medium text-gray-500">{course.place}</p>
-                            <p className="text-sm mt-1">{course.institution}</p>
+                        <div className="h-80 rounded-2xl overflow-hidden border border-gray-200">
+                            <KakaoMap placeName={course.institution} />
                         </div>
                     </div>
 

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Calendar, MapPin, User, Users, Clock, Phone, Building2, ChevronLeft, Heart } from "lucide-react";
 import ShareButton from "@/components/ShareButton"; // [추가]
+import BookmarkButton from "@/components/BookmarkButton"; // [추가]
 import KakaoMap from "@/components/KakaoMap"; // [추가]
 import { Metadata } from "next"; // [추가]
 
@@ -65,9 +66,8 @@ export default async function CourseDetailPage({ params }: PageProps) {
                             목록으로 돌아가기
                         </Link>
                         <div className="flex gap-2">
-                            <button className="p-2 text-gray-400 hover:text-rose-500 hover:bg-white rounded-full transition-all">
-                                <Heart className="w-5 h-5" />
-                            </button>
+                            {/* [수정] 기존 button 태그를 BookmarkButton 컴포넌트로 교체 */}
+                            <BookmarkButton course={course} />
                         </div>
                     </div>
 

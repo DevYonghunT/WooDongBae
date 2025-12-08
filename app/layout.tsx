@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Noto_Sans_KR } from "next/font/google";
 import "./globals.css";
 import { Search, Menu, User, LogIn } from "lucide-react";
 import Link from "next/link";
+import ScrollToTopButton from "@/components/ScrollToTopButton"; // [추가]
+import FeedbackWidget from "@/components/FeedbackWidget"; // [추가]
 
 const notoSansKr = Noto_Sans_KR({
   subsets: ["latin"],
@@ -22,7 +25,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
-      <body className={`${notoSansKr.variable} font-sans bg-stone-50 text-stone-700 antialiased`}>
+      <head>
+        <Script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3362378426446704"
+          crossOrigin="anonymous"
+          strategy="afterInteractive"
+        />
+      </head>
+      <body className={`${notoSansKr.variable} font-sans bg-stone-50 text-stone-700 antialiased relative`}>
         {/* Header */}
         <header className="sticky top-0 z-50 w-full border-b border-stone-200 bg-white/90 backdrop-blur-md">
           <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
@@ -36,8 +47,11 @@ export default function RootLayout({
 
             {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center gap-8">
-              <Link href="#" className="text-sm font-medium text-stone-600 hover:text-amber-600 transition-colors">
+              <Link href="/" className="text-sm font-medium text-stone-600 hover:text-amber-600 transition-colors">
                 강좌찾기
+              </Link>
+              <Link href="/bookmarks" className="text-sm font-medium text-stone-600 hover:text-amber-600 transition-colors">
+                찜 목록
               </Link>
               <Link href="#" className="text-sm font-medium text-stone-600 hover:text-amber-600 transition-colors">
                 내 주변
@@ -78,6 +92,10 @@ export default function RootLayout({
             <p className="text-sm">© 2024 우동배 (우리 동네 배움터). All rights reserved.</p>
           </div>
         </footer>
+        {/* [추가] 맨 위로 가기 버튼 (전역 배치) */}
+        {/* 플로팅 버튼들 */}
+        <FeedbackWidget /> {/* 좌측 하단 */}
+        <ScrollToTopButton />
       </body>
     </html>
   );

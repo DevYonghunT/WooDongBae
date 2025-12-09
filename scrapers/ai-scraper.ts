@@ -112,7 +112,16 @@ export class UniversalAiScraper {
 
                 console.log("   ⚙️ 50개씩 보기 설정 중...");
                 await page.selectOption(pageUnitSelector, '50');
-                await page.waitForTimeout(3000); // 리로딩 대기
+                
+                // [핵심 수정] "보기" 버튼 클릭하여 실제로 적용
+                const viewButton = await page.$('a:has-text("보기")');
+                if (viewButton) {
+                    await viewButton.click();
+                    console.log("   ✅ 보기 버튼 클릭 완료");
+                    await page.waitForTimeout(3000); // 페이지 리로드 대기
+                } else {
+                    console.log("   ⚠️ 보기 버튼을 찾을 수 없습니다.");
+                }
             } catch (e) {
                 console.log("   ⚠️ 설정 변경 실패 (기본값으로 진행, 페이지 로드 이슈일 수 있음)");
             }
@@ -207,17 +216,19 @@ export class UniversalAiScraper {
                 // 3. 다음 페이지 이동
                 if (pageNum < maxPages) {
                     try {
-                        const nextBtn = await page.$(`a[onclick*="link_page(${pageNum + 1})"]`);
+                        // [핵심 수정] fn_list 함수를 사용하는 올바른 선택자
+                        const nextBtn = await page.$(`a[onclick*="fn_list(${pageNum + 1}"]`);
 
                         if (nextBtn) {
                             await nextBtn.click();
+                            console.log(`      ➡️ 페이지 ${pageNum + 1}로 이동`);
                             await page.waitForTimeout(4000);
                         } else {
                             console.log("      🚫 다음 페이지 버튼 없음. 종료.");
                             break;
                         }
                     } catch (e) {
-                        console.log("      ⚠️ 페이지 이동 에러");
+                        console.log("      ⚠️ 페이지 이동 에러:", e);
                         break;
                     }
                 }

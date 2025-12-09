@@ -107,6 +107,14 @@ const TARGET_SITES = [
     { name: "의정부시영어도서관", region: "의정부시", url: "https://www.uilib.go.kr/english/module/teach/index.do?menu_idx=24" },
     { name: "의정부시가재울도서관", region: "의정부시", url: "https://www.uilib.go.kr/gajaeul/module/teach/index.do?menu_idx=24" },
     { name: "의정부시작은도서관", region: "의정부시", url: "https://www.uilib.go.kr/small/module/teach/index.do?menu_idx=57" },
+    { name: "광명시하안도서관", region: "광명시", url: "https://gmlib.gm.go.kr/front/index.php?g_page=event&m_page=event14&siteC%E3%85%81ode=ST01" },
+    { name: "광명시광명도서관", region: "광명시", url: "https://gmlib.gm.go.kr/front/index.php?g_page=event&m_page=event14&siteCode=ST02" },
+    { name: "광명시철산도서관", region: "광명시", url: "https://gmlib.gm.go.kr/front/index.php?g_page=event&m_page=event14&siteCode=ST03" },
+    { name: "광명시소하도서관", region: "광명시", url: "https://gmlib.gm.go.kr/front/index.php?g_page=event&m_page=event14&siteCode=ST04" },
+    { name: "광명시충현도서관", region: "광명시", url: "https://gmlib.gm.go.kr/front/index.php?g_page=event&m_page=event14&siteCode=ST05" },
+    { name: "광명시연서도서관", region: "광명시", url: "https://gmlib.gm.go.kr/front/index.php?g_page=event&m_page=event14&siteCode=ST06" },
+    { name: "광명시작은도서관", region: "광명시", url: "https://gmlib.gm.go.kr/front/index.php?g_page=event&m_page=event14&siteCode=ST50" },
+
 
     {
         name: "성남시평생학습통합플랫폼",
@@ -164,7 +172,7 @@ async function main() {
             let courses: any[] = [];
             // [수정] 성남시 전용 로직 분기
             if ((site as any).isSeongnam) {
-                courses = await scraper.scrapeSeongnam(site.url, 5);
+                courses = await scraper.scrapeSeongnam(site.url, 100);
             } else {
                 courses = await scraper.scrape(site.url, site.name, site.region);
             }

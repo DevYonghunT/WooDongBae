@@ -112,7 +112,7 @@ export class UniversalAiScraper {
 
                 console.log("   ⚙️ 50개씩 보기 설정 중...");
                 await page.selectOption(pageUnitSelector, '50');
-                
+
                 // [핵심 수정] "보기" 버튼 클릭하여 실제로 적용
                 const viewButton = await page.$('a:has-text("보기")');
                 if (viewButton) {
@@ -121,6 +121,7 @@ export class UniversalAiScraper {
                     await page.waitForTimeout(3000); // 페이지 리로드 대기
                 } else {
                     console.log("   ⚠️ 보기 버튼을 찾을 수 없습니다.");
+                    await page.waitForTimeout(3000); // 버튼 못찾아도 일단 대기
                 }
             } catch (e) {
                 console.log("   ⚠️ 설정 변경 실패 (기본값으로 진행, 페이지 로드 이슈일 수 있음)");
@@ -216,7 +217,7 @@ export class UniversalAiScraper {
                 // 3. 다음 페이지 이동
                 if (pageNum < maxPages) {
                     try {
-                        // [핵심 수정] fn_list 함수를 사용하는 올바른 선택자
+                        // [수정] fn_list(2,'') 형태의 링크를 찾도록 변경
                         const nextBtn = await page.$(`a[onclick*="fn_list(${pageNum + 1}"]`);
 
                         if (nextBtn) {

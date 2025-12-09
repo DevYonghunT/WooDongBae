@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import * as dotenv from 'dotenv';
 import path from 'path';
 // import { fileURLToPath } from 'url'; // Removed to avoid import.meta usage
-import { UniversalAiScraper } from './ai-scraper';
+import { UniversalAiScraper } from './ai-scraper.ts';
 
 // 1. ES Module 환경에서 __dirname 대용
 const __dirname = process.cwd();
@@ -114,6 +114,47 @@ const TARGET_SITES = [
     { name: "광명시충현도서관", region: "광명시", url: "https://gmlib.gm.go.kr/front/index.php?g_page=event&m_page=event14&siteCode=ST05" },
     { name: "광명시연서도서관", region: "광명시", url: "https://gmlib.gm.go.kr/front/index.php?g_page=event&m_page=event14&siteCode=ST06" },
     { name: "광명시작은도서관", region: "광명시", url: "https://gmlib.gm.go.kr/front/index.php?g_page=event&m_page=event14&siteCode=ST50" },
+    { name: "용인시중앙도서관", region: "용인시", url: "https://lib.yongin.go.kr/yongin/menu/10264/program/30027/lectureList.do" },
+    { name: "용인시누갈희망누리도서관", region: "용인시", url: "https://lib.yongin.go.kr/gugal/menu/10451/program/30027/lectureList.do" },
+    { name: "용인시구성도서관", region: "용인시", url: "https://lib.yongin.go.kr/guseong/menu/10647/program/30027/lectureList.do" },
+    { name: "용인시기흥도서관", region: "용인시", url: "https://lib.yongin.go.kr/giheung/menu/10844/program/30027/lectureList.do" },
+    { name: "용인시남사도서관", region: "용인시", url: "https://lib.yongin.go.kr/namsa/menu/11036/program/30027/lectureList.do" },
+    { name: "용인시동백도서관", region: "용인시", url: "https://lib.yongin.go.kr/dongbaek/menu/11232/program/30027/lectureList.do" },
+    { name: "용인시동천도서관", region: "용인시", url: "https://lib.yongin.go.kr/dongcheon/menu/37151445/program/30027/lectureList.do" },
+    { name: "용인시모현도서관", region: "용인시", url: "https://lib.yongin.go.kr/mohyeon/menu/11425/program/30027/lectureList.do" },
+    { name: "용인시보라도서관", region: "용인시", url: "https://lib.yongin.go.kr/bora/menu/11620/program/30027/lectureList.do" },
+    { name: "용인시상현도서관", region: "용인시", url: "https://lib.yongin.go.kr/sanghyeon/menu/11818/program/30027/lectureList.do" },
+    { name: "용인시서농도서관", region: "용인시", url: "https://lib.yongin.go.kr/seonong/menu/12013/program/30027/lectureList.do" },
+    { name: "용인시성복도서관", region: "용인시", url: "https://lib.yongin.go.kr/seongbok/menu/12205/program/30027/lectureList.do" },
+    { name: "용인시수지도서관", region: "용인시", url: "https://lib.yongin.go.kr/suji/menu/12408/program/30027/lectureList.do" },
+    { name: "용인시양지해밀도서관", region: "용인시", url: "https://lib.yongin.go.kr/haemil/menu/12615/program/30027/lectureList.do" },
+    { name: "용인시영덕도서관", region: "용인시", url: "https://lib.yongin.go.kr/yeongdeok/menu/12806/program/30027/lectureList.do" },
+    { name: "용인시이동꿈틀도서관", region: "용인시", url: "https://lib.yongin.go.kr/idong/menu/12998/program/30027/lectureList.do" },
+    { name: "용인시죽전도서관", region: "용인시", url: "https://lib.yongin.go.kr/idong/menu/12998/program/30027/lectureList.do" },
+    { name: "용인시청덕도서관", region: "용인시", url: "https://lib.yongin.go.kr/cheongdeok/menu/13386/program/30027/lectureList.do" },
+    { name: "용인시포곡도서관", region: "용인시", url: "https://lib.yongin.go.kr/pogok/menu/13580/program/30027/lectureList.do" },
+    { name: "용인시흥덕도서관", region: "용인시", url: "https://lib.yongin.go.kr/heungdeok/menu/13777/program/30027/lectureList.do" },
+    { name: "용인시중앙도서관", region: "용인시", url: "https://lib.yongin.go.kr/yongin/menu/10266/program/30069/vacationCourseList.do" },
+    { name: "용인시누갈희망누리도서관", region: "용인시", url: "https://lib.yongin.go.kr/gugal/menu/10453/program/30069/vacationCourseList.do" },
+    { name: "용인시구성도서관", region: "용인시", url: "https://lib.yongin.go.kr/guseong/menu/10649/program/30069/vacationCourseList.do" },
+    { name: "용인시기흥도서관", region: "용인시", url: "https://lib.yongin.go.kr/giheung/menu/10846/program/30069/vacationCourseList.do" },
+    { name: "용인시남사도서관", region: "용인시", url: "https://lib.yongin.go.kr/namsa/menu/11038/program/30069/vacationCourseList.do" },
+    { name: "용인시동백도서관", region: "용인시", url: "https://lib.yongin.go.kr/dongbaek/menu/11234/program/30069/vacationCourseList.do" },
+    { name: "용인시동천도서관", region: "용인시", url: "https://lib.yongin.go.kr/dongcheon/menu/37151447/program/30069/vacationCourseList.do" },
+    { name: "용인시모현도서관", region: "용인시", url: "https://lib.yongin.go.kr/mohyeon/menu/11427/program/30069/vacationCourseList.do" },
+    { name: "용인시보라도서관", region: "용인시", url: "https://lib.yongin.go.kr/bora/menu/11622/program/30069/vacationCourseList.do" },
+    { name: "용인시상현도서관", region: "용인시", url: "https://lib.yongin.go.kr/sanghyeon/menu/11820/program/30069/vacationCourseList.do" },
+    { name: "용인시서농도서관", region: "용인시", url: "https://lib.yongin.go.kr/seonong/menu/12015/program/30069/vacationCourseList.do" },
+    { name: "용인시성복도서관", region: "용인시", url: "https://lib.yongin.go.kr/seongbok/menu/12207/program/30069/vacationCourseList.do" },
+    { name: "용인시수지도서관", region: "용인시", url: "https://lib.yongin.go.kr/suji/menu/12410/program/30069/vacationCourseList.do" },
+    { name: "용인시양지해밀도서관", region: "용인시", url: "https://lib.yongin.go.kr/haemil/menu/12617/program/30069/vacationCourseList.do" },
+    { name: "용인시영덕도서관", region: "용인시", url: "https://lib.yongin.go.kr/yeongdeok/menu/12808/program/30069/vacationCourseList.do" },
+    { name: "용인시이동꿈틀도서관", region: "용인시", url: "https://lib.yongin.go.kr/idong/menu/13000/program/30069/vacationCourseList.do" },
+    { name: "용인시죽전도서관", region: "용인시", url: "https://lib.yongin.go.kr/jukjeon/menu/13195/program/30069/vacationCourseList.do" },
+    { name: "용인시청덕도서관", region: "용인시", url: "https://lib.yongin.go.kr/cheongdeok/menu/13388/program/30069/vacationCourseList.do" },
+    { name: "용인시포곡도서관", region: "용인시", url: "https://lib.yongin.go.kr/pogok/menu/13582/program/30069/vacationCourseList.do" },
+    { name: "용인시흥덕도서관", region: "용인시", url: "https://lib.yongin.go.kr/heungdeok/menu/13779/program/30069/vacationCourseList.do" },
+
 
 
     {

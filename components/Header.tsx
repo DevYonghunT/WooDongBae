@@ -3,18 +3,17 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Search, Menu, User, LogIn, Sparkles } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image"; // [필수] Image 컴포넌트 추가
 
 export default function Header() {
     const pathname = usePathname();
     const [showToast, setShowToast] = useState(false);
 
-    // 귀여운 '서비스 준비중' 알림 함수
     const handleComingSoon = (e: React.MouseEvent) => {
-        e.preventDefault(); // 링크 이동 방지
+        e.preventDefault();
         setShowToast(true);
-        // 2초 뒤에 저절로 사라짐
         setTimeout(() => setShowToast(false), 2000);
     };
 
@@ -23,19 +22,26 @@ export default function Header() {
             <header className="sticky top-0 z-50 w-full border-b border-stone-200 bg-white/90 backdrop-blur-md">
                 <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
 
-                    {/* 1. 로고 (항상 작동) */}
+                    {/* 1. 로고 (이미지로 교체) */}
                     <div className="flex items-center gap-2">
-                        <Link href="/" className="flex items-center gap-2">
-                            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-600 text-white font-bold text-lg shadow-md shadow-primary-200">
-                                우
+                        <Link href="/" className="flex items-center gap-2 group">
+                            {/* [수정] 기존 div 태그를 Image 컴포넌트로 교체 */}
+                            <div className="relative w-8 h-8 rounded-lg overflow-hidden shadow-md shadow-primary-200 group-hover:shadow-lg transition-all">
+                                <Image
+                                    src="/logo.png"
+                                    alt="우동배 로고"
+                                    fill
+                                    className="object-cover"
+                                />
                             </div>
-                            <span className="text-xl font-bold tracking-tight text-stone-800">우동배</span>
+                            <span className="text-xl font-bold tracking-tight text-stone-800 group-hover:text-primary-700 transition-colors">
+                                우동배
+                            </span>
                         </Link>
                     </div>
 
-                    {/* 2. 네비게이션 메뉴 */}
+                    {/* ... (나머지 네비게이션 및 아이콘 코드는 기존과 동일하게 유지) ... */}
                     <nav className="hidden md:flex items-center gap-8">
-                        {/* 강좌찾기 (메인 기능이므로 작동) */}
                         <Link
                             href="/"
                             className={`text-sm font-medium transition-colors ${pathname === '/' ? 'text-primary-600 font-bold' : 'text-stone-600 hover:text-amber-600'
@@ -44,7 +50,6 @@ export default function Header() {
                             강좌찾기
                         </Link>
 
-                        {/* 찜 목록 (작동) */}
                         <Link
                             href="/bookmarks"
                             className={`text-sm font-medium transition-colors ${pathname === '/bookmarks' ? 'text-primary-600 font-bold' : 'text-stone-600 hover:text-amber-600'
@@ -53,7 +58,6 @@ export default function Header() {
                             찜 목록
                         </Link>
 
-                        {/* [준비중] 커뮤니티 등 예시 메뉴 */}
                         <button
                             onClick={handleComingSoon}
                             className="text-sm font-medium text-stone-400 hover:text-stone-600 transition-colors cursor-not-allowed"
@@ -62,9 +66,7 @@ export default function Header() {
                         </button>
                     </nav>
 
-                    {/* 3. 우측 아이콘들 */}
                     <div className="flex items-center gap-3">
-                        {/* 검색 아이콘 (준비중 처리) */}
                         <button
                             onClick={handleComingSoon}
                             className="p-2 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-full transition-all"
@@ -72,7 +74,6 @@ export default function Header() {
                             <Search className="w-5 h-5" />
                         </button>
 
-                        {/* 로그인/유저 (준비중 처리) */}
                         <button
                             onClick={handleComingSoon}
                             className="p-2 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-full transition-all"
@@ -80,7 +81,6 @@ export default function Header() {
                             <User className="w-5 h-5" />
                         </button>
 
-                        {/* 모바일 메뉴 (준비중 처리) */}
                         <button
                             onClick={handleComingSoon}
                             className="md:hidden p-2 text-stone-500 hover:text-stone-700 hover:bg-stone-100 rounded-full transition-all"
@@ -91,7 +91,6 @@ export default function Header() {
                 </div>
             </header>
 
-            {/* ✨ 귀여운 토스트 팝업 (Service Coming Soon) */}
             <AnimatePresence>
                 {showToast && (
                     <motion.div

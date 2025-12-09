@@ -42,7 +42,6 @@ async function main() {
             .from('courses')
             .select('id, title, institution, category')
             .in('category', TARGET_CATEGORIES)
-            .limit(100); // 테스트용 제한
 
         if (error) throw error;
         if (!courses || courses.length === 0) {

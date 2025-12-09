@@ -5,6 +5,94 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// [추가 1] 필터링용 메타데이터만 가볍게 가져오기 (드롭다운 메뉴 구성용)
+export async function getFilterMetadata() {
+    try {
+        // region, institution 컬럼만 가져와서 중복 제거
+        const { data, error } = await supabase
+            .from('courses')
+            .select('region, institution')
+            .not('region', 'is', null);
+
+        if (error) throw error;
+        return data || [];
+    } catch (error) {
+        console.error('Failed to fetch metadata:', error);
+        return [];
+    }
+}
+
+// [추가 2] 페이지네이션 및 서버 사이드 필터링 적용 함수
+export async function getPaginatedCourses(
+    page: number,
+    limit: number,
+    filters: {
+        majorRegion: string;
+        minorRegion: string;
+        organ: string;
+        status: string;
+        search: string;
+    }
+): Promise<Course[]> {
+    try {
+        let query = supabase
+            .from('courses')
+            .select(COURSE_COLUMNS);
+
+        // 1. 지역 필터링 (서버 사이드)
+        if (filters.majorRegion !== "전체 지역") {
+            if (filters.majorRegion === "서울특별시") {
+                if (filters.minorRegion !== "전체") {
+                    // 특정 구 선택 시
+                    query = query.eq('region', filters.minorRegion);
+                } else {
+                    // 서울 전체 선택 시 ('구'로 끝나거나 '서울' 포함)
+                    query = query.or('region.ilike.%구,region.ilike.%서울%');
+                }
+            } else {
+                // 그 외 지역 (구리시, 하남시 등)
+                query = query.eq('region', filters.majorRegion);
+            }
+        }
+
+        // 2. 기관 필터링
+        if (filters.organ !== "전체 기관") {
+            query = query.eq('institution', filters.organ);
+        }
+
+        // 3. 상태 필터링
+        if (filters.status !== "전체 상태") {
+            // "접수중" 선택 시 "마감임박"도 포함해서 보여주기
+            if (filters.status === "접수중") {
+                query = query.in('status', ['접수중', '마감임박']);
+            } else {
+                query = query.eq('status', filters.status);
+            }
+        }
+
+        // 4. 검색어 필터링
+        if (filters.search) {
+            query = query.or(`title.ilike.%${filters.search}%,category.ilike.%${filters.search}%`);
+        }
+
+        // 5. 페이지네이션 (범위 지정)
+        const from = (page - 1) * limit;
+        const to = from + limit - 1;
+
+        const { data, error } = await query
+            .order('id', { ascending: false }) // 최신순 정렬
+            .range(from, to);
+
+        if (error) throw error;
+
+        return (data || []).map(mapRawToCourse);
+
+    } catch (error) {
+        console.error('Failed to fetch paginated courses:', error);
+        return [];
+    }
+}
+
 // [설정] 키워드별 이미지 매핑
 const KEYWORD_IMAGES: Record<string, string> = {
     '수영': 'https://images.unsplash.com/photo-1530549387789-4c1017266635?q=80&w=800&auto=format&fit=crop',

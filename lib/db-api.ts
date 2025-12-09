@@ -138,17 +138,36 @@ function mapRawToCourse(row: any): Course {
     };
 }
 
-// [최적화 2] 전체 강좌 조회 시 가벼운 쿼리 사용
+// [최적화 2] 전체 강좌 조회 (페이지네이션 적용하여 전체 로드)
 export async function getCoursesFromDB(): Promise<Course[]> {
     try {
-        const { data, error } = await supabase
-            .from('courses')
-            .select(COURSE_COLUMNS) // '*' 대신 필요한 컬럼만 선택
-            .order('id', { ascending: false });
+        let allCourses: any[] = [];
+        let page = 0;
+        const pageSize = 1000;
+        let hasMore = true;
 
-        if (error) throw error;
+        while (hasMore) {
+            const { data, error } = await supabase
+                .from('courses')
+                .select(COURSE_COLUMNS)
+                .order('id', { ascending: false })
+                .range(page * pageSize, (page + 1) * pageSize - 1);
 
-        return (data || [])
+            if (error) throw error;
+
+            if (data && data.length > 0) {
+                allCourses = allCourses.concat(data);
+                if (data.length < pageSize) {
+                    hasMore = false;
+                } else {
+                    page++;
+                }
+            } else {
+                hasMore = false;
+            }
+        }
+
+        return allCourses
             .map(mapRawToCourse)
             .sort((a, b) => {
                 const pA = STATUS_PRIORITY[a.status] || 99;

@@ -47,17 +47,43 @@ export class UniversalAiScraper {
             });
 
             const prompt = `
-                Extract course information from the text below.
+                You are a data extractor for Korean lifelong learning courses.
+                Extract course information from the provided web page text below.
                 
-                **Rules:**
-                1. If the status text contains "마감" or "종료", set status to "모집종료".
-                2. If "접수" or "신청" is present, set to "접수중".
-                3. If "대기", set to "접수대기".
-                4. Extract as many courses as possible.
+                **CRITICAL RULES FOR DATES (Timezone: Asia/Seoul, Current Year: 2025):**
+                1. "apply_date": Look for keywords like "접수기간", "신청기간", "모집기간".
+                2. "course_date": Look for keywords like "수강기간", "교육기간", "강좌기간", "운영기간".
+                3. Format: ALWAYS use "YYYY.MM.DD ~ YYYY.MM.DD". 
+                   - If year is missing in text (e.g. "3/5"), assume 2025 (e.g. "2025.03.05").
+                   - If only start date exists, use "YYYY.MM.DD ~ ".
                 
-                Return JSON: { "courses": [ { "title": "...", "status": "...", ... } ] }
+                **IMPORTANT RULE about STATUS:**
+                1. Trust the text status on the screen MORE than the date calculation.
+                2. Map the Korean status text to the following standard statuses:
+                   - "신청가능", "접수중", "신청중" -> "접수중"
+                   - "대기접수", "대기신청", "접수대기" -> "접수대기"
+                   - "마감임박" -> "마감임박"
+                   - "접수예정", "준비" -> "접수예정"
+                   - "마감", "접수마감", "교육중", "진행중", "종료" -> "모집종료"
+                   - "추가접수", "추가모집" -> "추가접수"
+                
+                Return ONLY a valid JSON object with a key "courses".
+                
+                JSON Structure:
+                {
+                    "title": "Course Name",
+                    "category": "Category (Art, IT, Sports, etc.)",
+                    "target": "Target Audience",
+                    "status": "Standardized Status",
+                    "apply_date": "YYYY.MM.DD ~ YYYY.MM.DD",
+                    "course_date": "YYYY.MM.DD ~ YYYY.MM.DD",
+                    "time": "Time string (e.g. '매주 월 10:00~12:00')",
+                    "price": "Price string (or '무료')",
+                    "capacity": Number (0 if unknown)
+                }
 
-                [Text]: ${pageContent}
+                [Web Page Text]:
+                ${pageContent}
             `;
 
             const result = await model.generateContent(prompt);
@@ -177,7 +203,11 @@ export class UniversalAiScraper {
                     1. Each course MUST have a "title". If title is unknown, DO NOT include it.
                     2. Map "교육기관" column to "institution".
                     3. Map "신청상태" to "status" ("신청가능"->"접수중", "마감"->"모집종료").
-                    4. Extract "target" (대상), "price" (수강료), "time" (시간), "course_date" (교육기간).
+                    
+                    **DATE EXTRACTION RULES (Current Year: 2025):**
+                    - Look for "교육기간" (Education Period) column -> Map to "course_date".
+                    - Look for "접수기간" (Application Period) column -> Map to "apply_date".
+                    - Format must be "YYYY.MM.DD ~ YYYY.MM.DD". Add year "2025" if missing.
                     
                     Return JSON: { "courses": [ { "title": "...", "institution": "...", ... } ] }
                     

@@ -2,18 +2,21 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { XMLParser } from 'fast-xml-parser';
 
-// [수정 1] 관리자 권한(Service Role Key)으로 Supabase 생성
-// (데이터를 쓰고 지우는 작업은 관리자 권한이 필수입니다)
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY! // <-- ANON_KEY에서 변경
-);
-
 // API 설정
 const OPERATION_NAME = 'getLectureList';
 const BASE_URL = 'https://apis.data.go.kr/7010000/everlearning';
 const API_URL = `${BASE_URL}/${OPERATION_NAME}`;
-const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
+
+const getSupabaseClient = () => {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+        throw new Error('Supabase credentials are missing. Please set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.');
+    }
+
+    return createClient(supabaseUrl, supabaseKey);
+};
 const PAGE_SIZE = 1000;
 
 // [Helper] 상태 계산 함수
@@ -59,12 +62,20 @@ const calculateDday = (endDateStr: string) => {
 
 export async function GET() {
     try {
+        const apiKey = process.env.NEXT_PUBLIC_API_KEY;
+
+        if (!apiKey) {
+            return NextResponse.json({ error: 'API key is missing. Please set NEXT_PUBLIC_API_KEY.' }, { status: 500 });
+        }
+
+        const supabase = getSupabaseClient();
+
         console.log("🔄 동기화 시작 (getLectureList)...");
 
         const parser = new XMLParser();
 
         const fetchPage = async (pageNo: number) => {
-            const targetUrl = `${API_URL}?serviceKey=${API_KEY}&numOfRows=${PAGE_SIZE}&pageNo=${pageNo}`;
+            const targetUrl = `${API_URL}?serviceKey=${apiKey}&numOfRows=${PAGE_SIZE}&pageNo=${pageNo}`;
             console.log(`📡 호출 URL (page ${pageNo}):`, targetUrl);
 
             const response = await fetch(targetUrl);

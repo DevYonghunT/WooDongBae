@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { Search, MapPin, Building2, RotateCcw, Filter, LayoutGrid, List } from "lucide-react";
+import { Search, MapPin, Building2, RotateCcw, Filter, LayoutGrid, List, Map } from "lucide-react";
 import BentoGrid from "./BentoGrid";
 import { Course } from "@/types/course";
 import { getCoursesFromDB } from "@/lib/db-api";
@@ -9,17 +9,22 @@ import { getCoursesFromDB } from "@/lib/db-api";
 // 상태 필터 옵션
 const STATUS_OPTIONS = ["전체 상태", "추가접수", "접수중", "접수예정", "접수대기", "모집종료"];
 
+// [설정] 대분류 지역 목록
+const MAJOR_REGIONS = ["전체 지역", "서울특별시", "구리시", "하남시"];
+
 export default function CourseExplorer() {
     const [courses, setCourses] = useState<Course[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     // 필터 상태 관리
     const [searchTerm, setSearchTerm] = useState("");
-    const [selectedRegion, setSelectedRegion] = useState("전체 지역");
+
+    // [변경] 지역 필터 분리 (대분류/소분류)
+    const [selectedMajorRegion, setSelectedMajorRegion] = useState("전체 지역");
+    const [selectedMinorRegion, setSelectedMinorRegion] = useState("전체"); // 구/동 선택
+
     const [selectedOrgan, setSelectedOrgan] = useState("전체 기관");
     const [selectedStatus, setSelectedStatus] = useState("전체 상태");
-
-    // [추가] 뷰 모드 상태 관리
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
 
     useEffect(() => {
@@ -36,35 +41,61 @@ export default function CourseExplorer() {
         loadData();
     }, []);
 
-    // 1. [지역 목록] 데이터에서 중복 제거 및 정제
-    const regions = useMemo(() => {
-        const list = Array.from(new Set(
-            courses
-                .map(c => c.region?.trim()) // 공백 제거
-                .filter(r => r && r !== "") // 빈 값 제거
-        )).sort();
-        return ["전체 지역", ...list];
-    }, [courses]);
+    // 1. [소분류 목록 계산] 대분류가 '서울특별시'일 때만 구 목록 추출
+    const minorRegions = useMemo(() => {
+        if (selectedMajorRegion === "서울특별시") {
+            // 데이터 중 '구'로 끝나는 지역만 추출 (구리시, 하남시 등 제외하고 순수 구만)
+            const districts = Array.from(new Set(
+                courses
+                    .map(c => c.region?.trim())
+                    .filter(r => r && r.endsWith("구"))
+            )).sort();
+            return ["전체", ...districts];
+        }
+        // 구리시, 하남시, 전체 지역일 경우 하위 분류 없음
+        return ["전체"];
+    }, [courses, selectedMajorRegion]);
 
-    // 2. [기관 목록] 선택된 지역에 해당하는 기관만 필터링
+    // 2. [기관 목록] 선택된 지역 조건에 맞는 기관만 필터링
     const organs = useMemo(() => {
         let filtered = courses;
-        if (selectedRegion !== "전체 지역") {
-            filtered = courses.filter(c => c.region?.trim() === selectedRegion);
+
+        // 대분류 필터링 적용
+        if (selectedMajorRegion === "서울특별시") {
+            // 서울특별시는 '구'로 끝나는 데이터들 중에서
+            if (selectedMinorRegion !== "전체") {
+                filtered = courses.filter(c => c.region === selectedMinorRegion);
+            } else {
+                filtered = courses.filter(c => c.region?.endsWith("구"));
+            }
+        } else if (selectedMajorRegion !== "전체 지역") {
+            // 구리시, 하남시 등
+            filtered = courses.filter(c => c.region === selectedMajorRegion);
         }
+
         const list = Array.from(new Set(
             filtered
                 .map(c => c.institution?.trim())
                 .filter(i => i && i !== "")
         )).sort();
         return ["전체 기관", ...list];
-    }, [courses, selectedRegion]);
+    }, [courses, selectedMajorRegion, selectedMinorRegion]);
 
     // 3. [최종 필터링]
     const filteredCourses = useMemo(() => {
         return courses.filter((course) => {
-            // 지역 체크 (공백 제거 후 비교)
-            const regionMatch = selectedRegion === "전체 지역" || course.region?.trim() === selectedRegion;
+            // [지역 체크 로직 변경]
+            let regionMatch = true;
+            if (selectedMajorRegion === "서울특별시") {
+                if (selectedMinorRegion === "전체") {
+                    regionMatch = course.region?.endsWith("구") || false;
+                } else {
+                    regionMatch = course.region === selectedMinorRegion;
+                }
+            } else if (selectedMajorRegion !== "전체 지역") {
+                // 구리시, 하남시 선택 시
+                regionMatch = course.region === selectedMajorRegion;
+            }
 
             // 기관 체크
             const organMatch = selectedOrgan === "전체 기관" || course.institution?.trim() === selectedOrgan;
@@ -87,13 +118,22 @@ export default function CourseExplorer() {
 
             return regionMatch && organMatch && statusMatch && searchMatch;
         });
-    }, [courses, selectedRegion, selectedOrgan, selectedStatus, searchTerm]);
+    }, [courses, selectedMajorRegion, selectedMinorRegion, selectedOrgan, selectedStatus, searchTerm]);
 
+    // 초기화 핸들러
     const handleReset = () => {
-        setSelectedRegion("전체 지역");
+        setSelectedMajorRegion("전체 지역");
+        setSelectedMinorRegion("전체");
         setSelectedOrgan("전체 기관");
         setSelectedStatus("전체 상태");
         setSearchTerm("");
+    };
+
+    // 대분류 변경 핸들러 (소분류 초기화 포함)
+    const handleMajorChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        setSelectedMajorRegion(e.target.value);
+        setSelectedMinorRegion("전체"); // 대분류 바뀌면 소분류 리셋
+        setSelectedOrgan("전체 기관");
     };
 
     return (
@@ -102,30 +142,52 @@ export default function CourseExplorer() {
             <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-6 mb-12 -mt-8 relative z-10 mx-4 lg:mx-0">
                 <div className="flex flex-col lg:flex-row gap-3 items-center">
 
-                    {/* ① 지역 선택 */}
-                    <div className="relative w-full lg:w-1/5">
+                    {/* ① 대분류 지역 (시/도) */}
+                    <div className="relative w-full lg:w-[140px]">
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                            <Map className="h-5 w-5" />
+                        </div>
+                        <select
+                            className="w-full h-12 pl-10 pr-8 bg-gray-50 border border-gray-200 rounded-xl text-gray-700 font-medium focus:ring-2 focus:ring-primary-400 focus:border-transparent outline-none appearance-none cursor-pointer hover:bg-gray-100 transition-colors text-sm"
+                            value={selectedMajorRegion}
+                            onChange={handleMajorChange}
+                        >
+                            {MAJOR_REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
+                        </select>
+                    </div>
+
+                    {/* ② 소분류 지역 (구) - 조건부 렌더링/활성화 */}
+                    <div className="relative w-full lg:w-[140px]">
                         <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                             <MapPin className="h-5 w-5" />
                         </div>
                         <select
-                            className="w-full h-12 pl-10 pr-8 bg-gray-50 border border-gray-200 rounded-xl text-gray-700 font-medium focus:ring-2 focus:ring-primary-400 focus:border-transparent outline-none appearance-none cursor-pointer hover:bg-gray-100 transition-colors text-sm"
-                            value={selectedRegion}
+                            className={`w-full h-12 pl-10 pr-8 border border-gray-200 rounded-xl text-gray-700 font-medium focus:ring-2 focus:ring-primary-400 focus:border-transparent outline-none appearance-none transition-colors text-sm ${selectedMajorRegion === "서울특별시"
+                                    ? "bg-gray-50 cursor-pointer hover:bg-gray-100"
+                                    : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                }`}
+                            value={selectedMinorRegion}
                             onChange={(e) => {
-                                setSelectedRegion(e.target.value);
+                                setSelectedMinorRegion(e.target.value);
                                 setSelectedOrgan("전체 기관");
                             }}
+                            disabled={selectedMajorRegion !== "서울특별시"}
                         >
-                            {regions.map(r => <option key={r} value={r}>{r}</option>)}
+                            {selectedMajorRegion === "서울특별시" ? (
+                                minorRegions.map(r => <option key={r} value={r}>{r === "전체" ? "전체 (구)" : r}</option>)
+                            ) : (
+                                <option value="전체">전체</option>
+                            )}
                         </select>
                     </div>
 
-                    {/* ② 기관 선택 */}
-                    <div className="relative w-full lg:w-1/5">
+                    {/* ③ 기관 선택 */}
+                    <div className="relative w-full lg:w-[180px]">
                         <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                             <Building2 className="h-5 w-5" />
                         </div>
                         <select
-                            className="w-full h-12 pl-10 pr-8 bg-gray-50 border border-gray-200 rounded-xl text-gray-700 font-medium focus:ring-2 focus:ring-primary-400 focus:border-transparent outline-none appearance-none cursor-pointer hover:bg-gray-100 transition-colors text-sm"
+                            className="w-full h-12 pl-10 pr-8 bg-gray-50 border border-gray-200 rounded-xl text-gray-700 font-medium focus:ring-2 focus:ring-primary-400 focus:border-transparent outline-none appearance-none cursor-pointer hover:bg-gray-100 transition-colors text-sm truncate"
                             value={selectedOrgan}
                             onChange={(e) => setSelectedOrgan(e.target.value)}
                         >
@@ -133,8 +195,8 @@ export default function CourseExplorer() {
                         </select>
                     </div>
 
-                    {/* ③ 상태 선택 */}
-                    <div className="relative w-full lg:w-[15%]">
+                    {/* ④ 상태 선택 */}
+                    <div className="relative w-full lg:w-[120px]">
                         <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                             <Filter className="h-5 w-5" />
                         </div>
@@ -147,7 +209,7 @@ export default function CourseExplorer() {
                         </select>
                     </div>
 
-                    {/* ④ 텍스트 검색 */}
+                    {/* ⑤ 텍스트 검색 */}
                     <div className="relative w-full lg:flex-1">
                         <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                             <Search className="h-5 w-5" />
@@ -161,7 +223,7 @@ export default function CourseExplorer() {
                         />
                     </div>
 
-                    {/* ⑤ 초기화 버튼 */}
+                    {/* ⑥ 초기화 버튼 */}
                     <button
                         onClick={handleReset}
                         className="p-3 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-xl transition-colors shrink-0"
@@ -172,7 +234,7 @@ export default function CourseExplorer() {
                 </div>
             </div>
 
-            {/* ─── 결과 목록 표시 ─── */}
+            {/* ─── 결과 목록 표시 (기존 코드 유지) ─── */}
             <div className="mb-6 px-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     <h2 className="text-xl font-bold text-gray-900">
@@ -184,7 +246,6 @@ export default function CourseExplorer() {
                     </span>
                 </div>
 
-                {/* [추가] 뷰 모드 토글 버튼 */}
                 <div className="flex gap-1 bg-gray-100 p-1 rounded-xl">
                     <button
                         onClick={() => setViewMode('grid')}
@@ -213,7 +274,6 @@ export default function CourseExplorer() {
             {isLoading ? (
                 <div className="text-center py-20 text-gray-500">데이터를 불러오고 있습니다...</div>
             ) : filteredCourses.length > 0 ? (
-                // [핵심] 여기에 w-full을 주어 그리드가 꽉 차게 함
                 <div className="w-full">
                     <BentoGrid courses={filteredCourses} viewMode={viewMode} />
                 </div>

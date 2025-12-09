@@ -123,9 +123,7 @@ export async function GET() {
                 time: item.dayOfWeek ? `${item.dayOfWeek} ${item.lectureStartTm}~` : '',
                 capacity: Number(item.onApplyNum || 0),
                 contact: item.organTelNo || '',
-                link: item.lectureId
-                    ? `https://everlearning.sen.go.kr/ever/menu/10010/program/30002/lectureDetail.do?lectureId=${item.lectureId}`
-                    : '',
+                link: `https://everlearning.sen.go.kr/ever/menu/10010/program/30002/lectureList.do?searchKeyword=${encodeURIComponent(item.lectureNm || item.lecture_nm || '제목 없음')}`,
 
                 // 원본 보관 (비상용)
                 raw_data: item
@@ -133,8 +131,11 @@ export async function GET() {
         });
 
         // 4. Supabase 저장
-        await supabase.from('courses').delete().neq('id', 0); // 기존 데이터 삭제
-        const { error } = await supabase.from('courses').insert(coursesToUpsert);
+        // [수정] 삭제 없이 Upsert (기존 데이터 유지 + 중복 시 업데이트)
+        const { error } = await supabase.from('courses').upsert(coursesToUpsert, {
+            onConflict: 'institution, title', // 이 두 값이 같으면 같은 강좌로 간주
+            ignoreDuplicates: false // 내용이 다르면 업데이트
+        });
 
         if (error) {
             console.error("Supabase 저장 실패:", error);

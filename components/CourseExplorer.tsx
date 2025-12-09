@@ -9,8 +9,8 @@ import { getCoursesFromDB } from "@/lib/db-api";
 // 상태 필터 옵션
 const STATUS_OPTIONS = ["전체 상태", "추가접수", "접수중", "접수예정", "접수대기", "모집종료"];
 
-// [설정] 대분류 지역 목록
-const MAJOR_REGIONS = ["전체 지역", "서울특별시", "구리시", "하남시"];
+// [삭제됨] 기존의 고정된 지역 목록 제거
+// const MAJOR_REGIONS = ["전체 지역", "서울특별시", "구리시", "하남시"];
 
 export default function CourseExplorer() {
     const [courses, setCourses] = useState<Course[]>([]);
@@ -24,7 +24,7 @@ export default function CourseExplorer() {
     const [selectedMinorRegion, setSelectedMinorRegion] = useState("전체"); // 구/동 선택
 
     const [selectedOrgan, setSelectedOrgan] = useState("전체 기관");
-    const [selectedStatus, setSelectedStatus] = useState("전체 상태");
+    const [selectedStatus, setSelectedStatus] = useState("접수중");
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
 
     useEffect(() => {
@@ -41,35 +41,58 @@ export default function CourseExplorer() {
         loadData();
     }, []);
 
-    // 1. [소분류 목록 계산] 대분류가 '서울특별시'일 때만 구 목록 추출
+    // 1. [대분류 목록 계산] DB 데이터를 분석해 자동으로 지역 목록 생성 (NEW!)
+    const majorRegions = useMemo(() => {
+        const regions = new Set<string>(["전체 지역"]);
+
+        courses.forEach(course => {
+            const r = course.region?.trim();
+            if (!r) return;
+
+            // '구'로 끝나거나 '서울'이 포함되면 -> 서울특별시로 분류
+            if (r.endsWith("구") || r.includes("서울")) {
+                regions.add("서울특별시");
+            } else {
+                // 그 외(남양주시, 광주시 등)는 해당 지역명 그대로 추가
+                regions.add(r);
+            }
+        });
+
+        // 정렬: 전체 -> 서울 -> 가나다순
+        return Array.from(regions).sort((a, b) => {
+            if (a === "전체 지역") return -1;
+            if (b === "전체 지역") return 1;
+            if (a === "서울특별시") return -1;
+            if (b === "서울특별시") return 1;
+            return a.localeCompare(b);
+        });
+    }, [courses]);
+
+    // 2. [소분류 목록 계산]
     const minorRegions = useMemo(() => {
         if (selectedMajorRegion === "서울특별시") {
-            // 데이터 중 '구'로 끝나는 지역만 추출 (구리시, 하남시 등 제외하고 순수 구만)
             const districts = Array.from(new Set(
                 courses
                     .map(c => c.region?.trim())
-                    .filter(r => r && r.endsWith("구"))
+                    .filter(r => r && (r.endsWith("구") || r.includes("서울")))
             )).sort();
             return ["전체", ...districts];
         }
-        // 구리시, 하남시, 전체 지역일 경우 하위 분류 없음
         return ["전체"];
     }, [courses, selectedMajorRegion]);
 
-    // 2. [기관 목록] 선택된 지역 조건에 맞는 기관만 필터링
+    // 3. [기관 목록]
     const organs = useMemo(() => {
         let filtered = courses;
 
-        // 대분류 필터링 적용
         if (selectedMajorRegion === "서울특별시") {
-            // 서울특별시는 '구'로 끝나는 데이터들 중에서
             if (selectedMinorRegion !== "전체") {
                 filtered = courses.filter(c => c.region === selectedMinorRegion);
             } else {
-                filtered = courses.filter(c => c.region?.endsWith("구"));
+                filtered = courses.filter(c => c.region?.endsWith("구") || c.region?.includes("서울"));
             }
         } else if (selectedMajorRegion !== "전체 지역") {
-            // 구리시, 하남시 등
+            // 남양주시, 광주시 등 선택 시 해당 지역만 필터링
             filtered = courses.filter(c => c.region === selectedMajorRegion);
         }
 
@@ -81,26 +104,26 @@ export default function CourseExplorer() {
         return ["전체 기관", ...list];
     }, [courses, selectedMajorRegion, selectedMinorRegion]);
 
-    // 3. [최종 필터링]
+    // 4. [최종 필터링]
     const filteredCourses = useMemo(() => {
         return courses.filter((course) => {
-            // [지역 체크 로직 변경]
             let regionMatch = true;
+            const r = course.region?.trim() || "";
+
             if (selectedMajorRegion === "서울특별시") {
                 if (selectedMinorRegion === "전체") {
-                    regionMatch = course.region?.endsWith("구") || false;
+                    // 서울 지역 전체 (구로 끝나거나 서울 포함)
+                    regionMatch = r.endsWith("구") || r.includes("서울");
                 } else {
-                    regionMatch = course.region === selectedMinorRegion;
+                    regionMatch = r === selectedMinorRegion;
                 }
             } else if (selectedMajorRegion !== "전체 지역") {
-                // 구리시, 하남시 선택 시
-                regionMatch = course.region === selectedMajorRegion;
+                // 남양주시, 광주시 등 정확히 일치하는 경우
+                regionMatch = r === selectedMajorRegion;
             }
 
-            // 기관 체크
             const organMatch = selectedOrgan === "전체 기관" || course.institution?.trim() === selectedOrgan;
 
-            // 상태 체크
             let statusMatch = false;
             if (selectedStatus === "전체 상태") {
                 statusMatch = true;
@@ -110,7 +133,6 @@ export default function CourseExplorer() {
                 statusMatch = course.status === selectedStatus;
             }
 
-            // 검색어 체크
             const searchLower = searchTerm.toLowerCase();
             const searchMatch = !searchTerm ||
                 course.title.toLowerCase().includes(searchLower) ||
@@ -125,7 +147,7 @@ export default function CourseExplorer() {
         setSelectedMajorRegion("전체 지역");
         setSelectedMinorRegion("전체");
         setSelectedOrgan("전체 기관");
-        setSelectedStatus("전체 상태");
+        setSelectedStatus("접수중");
         setSearchTerm("");
     };
 
@@ -152,7 +174,8 @@ export default function CourseExplorer() {
                             value={selectedMajorRegion}
                             onChange={handleMajorChange}
                         >
-                            {MAJOR_REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
+                            {/* [수정] majorRegions 변수를 map으로 돌림 */}
+                            {majorRegions.map(r => <option key={r} value={r}>{r}</option>)}
                         </select>
                     </div>
 
@@ -163,8 +186,8 @@ export default function CourseExplorer() {
                         </div>
                         <select
                             className={`w-full h-12 pl-10 pr-8 border border-gray-200 rounded-xl text-gray-700 font-medium focus:ring-2 focus:ring-primary-400 focus:border-transparent outline-none appearance-none transition-colors text-sm ${selectedMajorRegion === "서울특별시"
-                                    ? "bg-gray-50 cursor-pointer hover:bg-gray-100"
-                                    : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                ? "bg-gray-50 cursor-pointer hover:bg-gray-100"
+                                : "bg-gray-100 text-gray-400 cursor-not-allowed"
                                 }`}
                             value={selectedMinorRegion}
                             onChange={(e) => {
@@ -196,7 +219,7 @@ export default function CourseExplorer() {
                     </div>
 
                     {/* ④ 상태 선택 */}
-                    <div className="relative w-full lg:w-[120px]">
+                    <div className="relative w-full lg:w-[160px]">
                         <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                             <Filter className="h-5 w-5" />
                         </div>

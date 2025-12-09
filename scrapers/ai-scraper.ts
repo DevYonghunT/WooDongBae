@@ -1,6 +1,6 @@
 import { chromium } from 'playwright';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { Course } from './types.ts';
+import { Course } from './types';
 
 export class UniversalAiScraper {
     private genAI: GoogleGenerativeAI;
@@ -8,7 +8,7 @@ export class UniversalAiScraper {
     constructor() {
         const apiKey = process.env.GEMINI_API_KEY;
         if (!apiKey) {
-            throw new Error("GEMINI_API_KEY is missing in .env file");
+            throw new Error("GEMINI_API_KEY is missing in .env.local file");
         }
         this.genAI = new GoogleGenerativeAI(apiKey);
     }

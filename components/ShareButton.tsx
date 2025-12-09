@@ -1,48 +1,83 @@
 "use client";
 
-import { Share2 } from "lucide-react";
+import { Share2, Check } from "lucide-react";
+import { useState } from "react";
+import { Course } from "@/types/course";
+import { motion, AnimatePresence } from "framer-motion";
 
-interface ShareButtonProps {
-    course: {
-        title: string;
-        institution: string;
-        category: string;
-    };
-}
+export default function ShareButton({ course }: { course: Course }) {
+    const [copied, setCopied] = useState(false);
 
-export default function ShareButton({ course }: ShareButtonProps) {
     const handleShare = async () => {
         const currentUrl = window.location.href;
-        const shareText = `[우동배] 우리 동네 배움터 추천! 🎓\n\n"${course.title}"\n\n지금 바로 상세 내용을 확인해보세요 👇\n${currentUrl}`;
 
+        // [유지] 링크 중복 방지를 위한 텍스트 합치기 로직
+        const shareText = `[우동배] ${course.title}\n\n${course.institution}에서 진행하는 강좌입니다.\n지금 바로 확인해보세요!\n\n${currentUrl}`;
+
+        // 1. 모바일 공유하기
         if (navigator.share) {
             try {
                 await navigator.share({
                     title: course.title,
                     text: shareText,
-                    url: currentUrl,
+                    // url: currentUrl, // [중요] 중복 방지를 위해 url 필드는 생략
                 });
+                return;
             } catch (error) {
-                console.error("공유 실패:", error);
+                console.log('공유 취소 또는 에러:', error);
             }
-        } else {
-            try {
-                await navigator.clipboard.writeText(shareText);
-                alert("주소가 복사되었습니다! 친구에게 공유해보세요.");
-            } catch (error) {
-                console.error("복사 실패:", error);
-                alert("주소 복사에 실패했습니다.");
-            }
+        }
+
+        // 2. PC 또는 API 미지원 시 클립보드 복사
+        try {
+            await navigator.clipboard.writeText(currentUrl);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        } catch (err) {
+            console.error('복사 실패:', err);
         }
     };
 
     return (
-        <button
+        <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             onClick={handleShare}
-            className="w-full py-3 mt-3 rounded-xl font-bold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 hover:text-primary-600 transition-all flex items-center justify-center gap-2 shadow-sm"
-            aria-label="친구에게 공유하기"
+            className={`
+                relative flex items-center justify-center gap-2 px-5 py-2.5 rounded-full 
+                font-bold transition-all duration-300 shadow-sm border
+                ${copied
+                    ? "bg-emerald-50 border-emerald-200 text-emerald-600"
+                    : "bg-white border-gray-200 text-gray-700 hover:border-primary-200 hover:text-primary-600 hover:shadow-md"
+                }
+            `}
+            aria-label="공유하기"
         >
-            <span>친구랑 같이 들을래요? 📤</span>
-        </button>
+            <AnimatePresence mode="wait" initial={false}>
+                {copied ? (
+                    <motion.div
+                        key="check"
+                        initial={{ scale: 0.5, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.5, opacity: 0 }}
+                        className="flex items-center gap-2"
+                    >
+                        <Check size={18} className="stroke-[3px]" />
+                        <span>복사완료</span>
+                    </motion.div>
+                ) : (
+                    <motion.div
+                        key="share"
+                        initial={{ scale: 0.5, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.5, opacity: 0 }}
+                        className="flex items-center gap-2"
+                    >
+                        <Share2 size={18} />
+                        <span>공유하기</span>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </motion.button>
     );
 }

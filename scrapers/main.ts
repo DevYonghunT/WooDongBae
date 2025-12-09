@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import * as dotenv from 'dotenv';
 import path from 'path';
 // import { fileURLToPath } from 'url'; // Removed to avoid import.meta usage
-import { UniversalAiScraper } from './ai-scraper';
+import { UniversalAiScraper } from './ai-scraper.ts';
 
 // 1. ES Module 환경에서 __dirname 대용
 const __dirname = process.cwd();
@@ -25,29 +25,33 @@ if (result.parsed) {
 }
 
 // 3. 변수 할당
-const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+// [수정] ANON_KEY 대신 SERVICE_ROLE_KEY 사용
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+
+if (!supabaseUrl || !supabaseKey) {
+    throw new Error("Supabase 환경변수(SERVICE_ROLE_KEY)가 설정되지 않았습니다.");
+}
 const GEMINI_KEY = process.env.GEMINI_API_KEY || "";
 
 // 4. 디버깅 로그
 console.log("-----------------------------------");
 console.log("Checking Env Variables...");
-console.log("URL:", SUPABASE_URL ? "✅ Loaded" : "❌ Missing");
-console.log("KEY:", SUPABASE_KEY ? "✅ Loaded" : "❌ Missing");
+console.log("URL:", supabaseUrl ? "✅ Loaded" : "❌ Missing");
+console.log("KEY:", supabaseKey ? "✅ Loaded" : "❌ Missing");
 console.log("GEMINI:", GEMINI_KEY ? "✅ Loaded" : "❌ Missing");
 console.log("-----------------------------------");
 
 // 5. 필수 키 검사
-if (!SUPABASE_URL || !SUPABASE_KEY) {
-    console.error("🚨 Error: Supabase URL 또는 Key가 없습니다.");
-    process.exit(1);
+if (!supabaseUrl || !supabaseKey) {
+    throw new Error("Supabase 환경변수(SERVICE_ROLE_KEY)가 설정되지 않았습니다.");
 }
 if (!GEMINI_KEY) {
     console.error("🚨 Error: GEMINI_API_KEY가 없습니다. .env.local 파일 (혹은 .env)에 추가해주세요.");
     process.exit(1);
 }
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 // [핵심] 크롤링할 도서관 목록
 const TARGET_SITES = [
@@ -95,22 +99,75 @@ const TARGET_SITES = [
     { name: "광주시퇴촌도서관", region: "광주시", url: "https://lib.gjcity.go.kr/tc/lay1/program/S23T3030C3032/cultureprogram/cultureWrt_list.do" },
     { name: "광주시만선도서관", region: "광주시", url: "https://lib.gjcity.go.kr/ms/lay1/program/S24T3091C3093/cultureprogram/cultureWrt_list.do" },
     { name: "광주시신현도서관", region: "광주시", url: "https://lib.gjcity.go.kr/sh/lay1/program/S21T3643C3645/cultureprogram/cultureWrt_list.do" },
-    { name: "광주시작은도서관", region: "광주시", url: "https://lib.gjcity.go.kr/slib/lay1/program/S39T2941C434/cultureprogram/cultureWrt_list.do" }
+    { name: "광주시작은도서관", region: "광주시", url: "https://lib.gjcity.go.kr/slib/lay1/program/S39T2941C434/cultureprogram/cultureWrt_list.do" },
+    { name: "의정부시정보도서관", region: "의정부시", url: "https://www.uilib.go.kr/information/module/teach/index.do?menu_idx=24" },
+    { name: "의정부시과학도서관", region: "의정부시", url: "https://www.uilib.go.kr/science/module/teach/index.do?menu_idx=24" },
+    { name: "의정부시미술도서관", region: "의정부시", url: "https://www.uilib.go.kr/art/module/teach/index.do?menu_idx=24" },
+    { name: "의정부시음악도서관", region: "의정부시", url: "https://www.uilib.go.kr/music/module/teach/index.do?menu_idx=24" },
+    { name: "의정부시영어도서관", region: "의정부시", url: "https://www.uilib.go.kr/english/module/teach/index.do?menu_idx=24" },
+    { name: "의정부시가재울도서관", region: "의정부시", url: "https://www.uilib.go.kr/gajaeul/module/teach/index.do?menu_idx=24" },
+    { name: "의정부시작은도서관", region: "의정부시", url: "https://www.uilib.go.kr/small/module/teach/index.do?menu_idx=57" },
 
+    {
+        name: "성남시평생학습통합플랫폼",
+        region: "성남시",
+        url: "https://sugang.seongnam.go.kr/ilms/learning/learningList.do",
+        isSeongnam: true
+    }
 ];
 
+// 1. 옵션 값 추출
 async function main() {
-    console.log(`🚀 총 ${TARGET_SITES.length}개 도서관 크롤링 시작...`);
+    const args = process.argv.slice(2);
+    const startArg = args.find(arg => arg.startsWith('--start='));
+    const endArg = args.find(arg => arg.startsWith('--end='));
+    const targetArg = args.find(arg => arg.startsWith('--target='));
+
+    let sitesToScrape = TARGET_SITES;
+
+    // 2. 인덱스 범위로 자르기 (--start, --end)
+    if (startArg || endArg) {
+        const start = startArg ? parseInt(startArg.split('=')[1]) : 0;
+        const end = endArg ? parseInt(endArg.split('=')[1]) : TARGET_SITES.length;
+
+        console.log(`✂️ 범위 지정 모드: 인덱스 ${start}번부터 ${end}번 앞까지 실행합니다.`);
+        sitesToScrape = sitesToScrape.slice(start, end);
+    }
+
+    // 3. 이름으로 검색하기 (--target)
+    if (targetArg) {
+        const keyword = targetArg.split('=')[1];
+        console.log(`🎯 타겟 지정 모드: "${keyword}"가 포함된 도서관만 실행합니다.`);
+        sitesToScrape = sitesToScrape.filter(site => site.name.includes(keyword) || site.region.includes(keyword));
+    }
+
+    // 4. 대상 목록 확인 출력
+    if (sitesToScrape.length === 0) {
+        console.error("❌ 조건에 맞는 도서관이 없습니다. 스크래핑을 종료합니다.");
+        return;
+    }
+
+    console.log(`\n📋 [스크래핑 대상 목록 (${sitesToScrape.length}개)]`);
+    sitesToScrape.forEach((s, i) => console.log(`   ${i + 1}. [${s.region}] ${s.name}`));
+    console.log(`------------------------------------------------\n`);
+
+    console.log(`🚀 총 ${sitesToScrape.length}개 도서관 크롤링 시작...`);
 
     const scraper = new UniversalAiScraper();
 
-    for (const site of TARGET_SITES) {
+    for (const site of sitesToScrape) {
         console.log(`\n------------------------------------------------`);
         console.log(`🏢 [${site.name}] 처리 중...`);
         console.log(`🔗 URL: ${site.url}`);
 
         try {
-            const courses = await scraper.scrape(site.url, site.name, site.region);
+            let courses: any[] = [];
+            // [수정] 성남시 전용 로직 분기
+            if ((site as any).isSeongnam) {
+                courses = await scraper.scrapeSeongnam(site.url, 5);
+            } else {
+                courses = await scraper.scrape(site.url, site.name, site.region);
+            }
 
             if (courses.length > 0) {
                 // 1. 데이터 매핑
@@ -134,15 +191,12 @@ async function main() {
                     raw_data: c
                 }));
 
-                // 2. 중복 제거 (수집된 데이터 내에서 동일 강좌 제거)
+                // 2. 중복 제거
                 const uniqueDbData = Array.from(
                     new Map(dbData.map(item => [item.institution + item.title, item])).values()
                 );
 
-                // 3. [핵심 수정] 데이터 저장 (Upsert 방식)
-                // - 기존 데이터를 삭제하지 않고 덮어씌웁니다.
-                // - 조건: 'institution'(기관명)과 'title'(강좌명)이 같으면 업데이트합니다.
-                // - 장점: 기존 강좌의 ID가 변하지 않아 공유된 링크가 유지됩니다.
+                // 3. 데이터 저장 (Upsert)
                 const { error } = await supabase
                     .from('courses')
                     .upsert(uniqueDbData, { onConflict: 'institution, title' });
@@ -156,9 +210,9 @@ async function main() {
             console.error(`❌ [${site.name}] 에러 발생:`, err);
         }
 
-        // AI API 호출 제한 방지 (3초 대기)
-        console.log("⏳ 다음 도서관으로 이동 전 3초 대기...");
-        await new Promise(resolve => setTimeout(resolve, 3000));
+        // AI API 호출 제한 방지 (2초 대기)
+        console.log("⏳ 다음 도서관으로 이동 전 2초 대기...");
+        await new Promise(resolve => setTimeout(resolve, 2000));
     }
 
     console.log("\n🎉 모든 크롤링 작업이 완료되었습니다!");

@@ -16,3 +16,10 @@ export interface Course {
     contact: string;     // 문의처
     link: string;        // 링크
 }
+
+export interface TargetSite {
+    name: string;
+    region: string;
+    url: string;
+    isSeongnam?: boolean;
+}

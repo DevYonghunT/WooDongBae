@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import * as dotenv from 'dotenv';
 import path from 'path';
 // import { fileURLToPath } from 'url'; // Removed to avoid import.meta usage
-import { UniversalAiScraper } from './ai-scraper.ts';
+import { UniversalAiScraper } from './ai-scraper';
 
 // 1. ES Module 환경에서 __dirname 대용
 const __dirname = process.cwd();

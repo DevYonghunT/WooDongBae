@@ -1,15 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 import * as dotenv from 'dotenv';
 import path from 'path';
-// import { fileURLToPath } from 'url'; // Removed to avoid import.meta usage
-import { UniversalAiScraper } from './ai-scraper';
+import { UniversalAiScraper } from './ai-scraper.ts';
 
-// 1. ES Module 환경에서 __dirname 대용
-const __dirname = process.cwd();
-
-// 2. .env 파일 로드
-// 리포지토리 루트의 .env.local을 명시적으로 로드
-const envPath = path.resolve(__dirname, '.env.local');
+// [수정] 실행 위치(프로젝트 루트) 기준으로 .env.local 찾기
+const envPath = path.resolve(process.cwd(), '.env.local');
 const result = dotenv.config({ path: envPath });
 
 if (result.error) {

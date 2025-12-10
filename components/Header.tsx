@@ -58,12 +58,13 @@ export default function Header() {
                             찜 목록
                         </Link>
 
-                        <button
-                            onClick={handleComingSoon}
-                            className="text-sm font-medium text-stone-400 hover:text-stone-600 transition-colors cursor-not-allowed"
+                        <Link
+                            href="/community"
+                            className={`text-sm font-medium transition-colors ${pathname === '/community' ? 'text-primary-600 font-bold' : 'text-stone-600 hover:text-amber-600'
+                                }`}
                         >
                             커뮤니티
-                        </button>
+                        </Link>
                     </nav>
 
                     <div className="flex items-center gap-3">

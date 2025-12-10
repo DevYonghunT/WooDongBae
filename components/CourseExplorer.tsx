@@ -29,12 +29,17 @@ export default function CourseExplorer() {
     // 무한 스크롤 감지용 Ref
     const observerTarget = useRef<HTMLDivElement>(null);
 
-    // ─── [A] 초기 메타데이터 로드 (드롭다운 구성용) ───
+    // ─── [A] 초기 메타데이터 로드 (에러 핸들링 추가) ───
     useEffect(() => {
         async function loadMetadata() {
-            const data = await getFilterMetadata();
-            // @ts-ignore
-            setFilterData(data);
+            try {
+                const data = await getFilterMetadata();
+                // @ts-ignore
+                setFilterData(data);
+            } catch (error) {
+                console.error("필터 메타데이터 로드 실패:", error);
+                // 필요 시 에러 상태를 설정하여 사용자에게 알림 UI 표시 가능
+            }
         }
         loadMetadata();
     }, []);
@@ -60,7 +65,8 @@ export default function CourseExplorer() {
             // 가져온 데이터가 요청 개수보다 적으면 더 이상 데이터가 없는 것
             setHasMore(newCourses.length === ITEMS_PER_PAGE);
         } catch (error) {
-            console.error("Failed to load courses", error);
+            console.error("강좌 목록 불러오기 실패:", error);
+            // 여기에 에러 발생 시 사용자에게 보여줄 토스트 메시지 등을 추가할 수 있습니다.
         } finally {
             setIsLoading(false);
         }

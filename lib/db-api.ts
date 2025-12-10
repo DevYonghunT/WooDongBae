@@ -1,8 +1,15 @@
 import { createClient } from '@supabase/supabase-js';
 import { Course } from "@/types/course";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+// [수정 1] 환경 변수 검증 가드 (Environment Guard)
+// 값이 없으면 에러를 던져서 배포/실행 시 바로 알 수 있게 합니다.
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseKey) {
+    throw new Error("필수 환경 변수가 누락되었습니다: NEXT_PUBLIC_SUPABASE_URL 또는 NEXT_PUBLIC_SUPABASE_ANON_KEY를 확인해주세요.");
+}
+
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // [추가 1] 필터링용 메타데이터만 가볍게 가져오기 (드롭다운 메뉴 구성용)
@@ -18,7 +25,7 @@ export async function getFilterMetadata() {
         return data || [];
     } catch (error) {
         console.error('Failed to fetch metadata:', error);
-        return [];
+        throw error; // [수정 3] 에러 전파 (swallowing 방지)
     }
 }
 
@@ -70,9 +77,13 @@ export async function getPaginatedCourses(
             }
         }
 
-        // 4. 검색어 필터링
+        // 4. 검색어 필터링 [수정 2] 안전한 쿼리 생성
         if (filters.search) {
-            query = query.or(`title.ilike.%${filters.search}%,category.ilike.%${filters.search}%`);
+            // .or() 문법을 깨뜨릴 수 있는 콤마(,)와 퍼센트(%) 제거
+            const safeSearch = filters.search.replace(/[,%]/g, '');
+            if (safeSearch) {
+                query = query.or(`title.ilike.%${safeSearch}%,category.ilike.%${safeSearch}%`);
+            }
         }
 
         // 5. 페이지네이션 (범위 지정)
@@ -89,7 +100,7 @@ export async function getPaginatedCourses(
 
     } catch (error) {
         console.error('Failed to fetch paginated courses:', error);
-        return [];
+        throw error; // [수정 3] 에러 전파 (클라이언트가 에러를 알 수 있게 함)
     }
 }
 
@@ -140,8 +151,7 @@ function refineInstitutionName(rawName: string): string {
     // 검색이 잘 안되는 특정 케이스 수동 보정
     if (name.includes("성동광진")) return "성동광진교육지원청";
     if (name === "학생체육관") return "서울특별시교육청학생체육관";
-    if (name === "구리시꿈꾸는공작소") return "구리시인창도서관"; // 사용자 요청 반영
-
+    if (name === "구리시꿈꾸는공작소") return "구리시인창도서관";
     return name;
 }
 

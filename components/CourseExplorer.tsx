@@ -111,13 +111,22 @@ export default function CourseExplorer() {
         filterData.forEach(item => {
             const r = item.region?.trim();
             if (!r) return;
+            // 서울 관련 지역은 모두 '서울특별시'로 통합
             if (r.endsWith("구") || r.includes("서울")) regions.add("서울특별시");
             else regions.add(r);
         });
+
         return Array.from(regions).sort((a, b) => {
+            // 1순위: 전체 지역
             if (a === "전체 지역") return -1;
+            if (b === "전체 지역") return 1;
+
+            // 2순위: 서울특별시
             if (a === "서울특별시") return -1;
-            return a.localeCompare(b);
+            if (b === "서울특별시") return 1;
+
+            // 3순위: 나머지 가나다 순
+            return a.localeCompare(b, 'ko');
         });
     }, [filterData]);
 

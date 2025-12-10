@@ -32,8 +32,8 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
-      - name: 📦 의존성 패키지 설치
-        run: npm ci
+      - name: 📦 의존성 패키지 설치 (devDependencies 포함)
+        run: npm ci --include=dev
 
       - name: 🎭 Playwright 브라우저 설치
         run: npx playwright install --with-deps chromium
@@ -51,11 +51,16 @@ jobs:
           echo "GEMINI_API_KEY=$GEMINI_API_KEY" >> .env.local
           
       - name: 🚀 스크래퍼 실행 (전체 또는 타겟)
+        env:
+          TARGET: ${{ github.event.inputs.target }}
         run: |
-          if [ -n "${{ github.event.inputs.target }}" ]; then
-            echo "🎯 타겟 지정 모드: ${{ github.event.inputs.target }}"
-            npx tsx scrapers/main.ts --target="${{ github.event.inputs.target }}"
+         # tsx 로더를 강제로 사용해 .ts 파일을 그대로 실행
+          export NODE_OPTIONS="--loader=tsx"
+
+          if [ -n "$TARGET" ]; then
+            echo "🎯 타겟 지정 모드: $TARGET"
+            node scrapers/main.ts --target="$TARGET"
           else
             echo "🔄 전체 모드 실행"
-            npx tsx scrapers/main.ts
+            node scrapers/main.ts
           fi

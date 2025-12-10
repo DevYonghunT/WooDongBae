@@ -3,6 +3,7 @@ import * as dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url'; // [주석 해제] url 모듈 사용
 import { UniversalAiScraper } from './ai-scraper.ts';
+import { fetchSeoulCourses } from './seoul-api.ts'; // [추가] 서울시 API 함수 임포트
 
 // 1. [수정] ES Module 환경에서 __dirname을 파일 기준으로 정확하게 설정
 const __filename = fileURLToPath(import.meta.url);
@@ -267,6 +268,25 @@ async function main() {
         // AI API 호출 제한 방지 (2초 대기)
         console.log("⏳ 다음 도서관으로 이동 전 2초 대기...");
         await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+
+    // [추가] 서울시 공공서비스예약 API 데이터 가져오기 (마지막에 실행)
+    console.log("\n------------------------------------------------");
+    console.log("🏙️ 서울시 공공서비스예약 API 데이터 가져오는 중...");
+    const seoulData = await fetchSeoulCourses();
+
+    if (seoulData.length > 0) {
+        const { error } = await supabase
+            .from('courses')
+            .upsert(seoulData, {
+                onConflict: 'institution, title',
+                ignoreDuplicates: false
+            });
+
+        if (error) console.error("🔥 서울시 데이터 저장 실패:", error.message);
+        else console.log(`✅ 서울시 강좌 ${seoulData.length}건 저장/업데이트 완료!`);
+    } else {
+        console.log("⚠️ 서울시 API 데이터가 없거나 호출에 실패했습니다.");
     }
 
     console.log("\n🎉 모든 크롤링 작업이 완료되었습니다!");

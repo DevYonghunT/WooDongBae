@@ -49,8 +49,8 @@ jobs:
         run: |
           if [ -n "${{ github.event.inputs.target }}" ]; then
             echo "🎯 타겟 지정 모드: ${{ github.event.inputs.target }}"
-            npx tsx scrapers/main.ts --target="${{ github.event.inputs.target }}"
+            npx ts-node --esmx scrapers/main.ts --target="${{ github.event.inputs.target }}"
           else
             echo "🔄 전체 모드 실행"
-            npx tsx scrapers/main.ts
+            npx ts-node --esm scrapers/main.ts
           fi

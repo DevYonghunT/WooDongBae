@@ -14,9 +14,15 @@ export default function CommunityPage() {
 
     // [중요] 모달에 넘겨줄 데이터 갱신 함수
     const fetchData = useCallback(async () => {
-        const res = await getCommunityData();
-        setData(res);
-        setIsLoading(false);
+        try {
+            const res = await getCommunityData();
+            setData(res);
+        } catch (error) {
+            console.error("데이터 불러오기 실패:", error);
+            alert("게시글을 불러오는데 실패했습니다. 잠시 후 다시 시도해주세요.");
+        } finally {
+            setIsLoading(false); // 성공하든 실패하든 로딩은 무조건 끝냄
+        }
     }, []);
 
     useEffect(() => {
@@ -53,8 +59,8 @@ export default function CommunityPage() {
                         <button
                             onClick={() => setActiveTab("notice")}
                             className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === "notice"
-                                    ? "bg-white text-primary-600 shadow-sm"
-                                    : "text-gray-500 hover:text-gray-700"
+                                ? "bg-white text-primary-600 shadow-sm"
+                                : "text-gray-500 hover:text-gray-700"
                                 }`}
                         >
                             📢 공지사항
@@ -62,8 +68,8 @@ export default function CommunityPage() {
                         <button
                             onClick={() => setActiveTab("free")}
                             className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === "free"
-                                    ? "bg-white text-primary-600 shadow-sm"
-                                    : "text-gray-500 hover:text-gray-700"
+                                ? "bg-white text-primary-600 shadow-sm"
+                                : "text-gray-500 hover:text-gray-700"
                                 }`}
                         >
                             🗣️ 자유게시판
@@ -99,8 +105,8 @@ export default function CommunityPage() {
                                                 initial={{ opacity: 0, y: 10 }}
                                                 animate={{ opacity: 1, y: 0 }}
                                                 className={`p-5 rounded-2xl border transition-all hover:shadow-md cursor-pointer ${notice.is_pinned
-                                                        ? "bg-primary-50/50 border-primary-100"
-                                                        : "bg-white border-gray-100"
+                                                    ? "bg-primary-50/50 border-primary-100"
+                                                    : "bg-white border-gray-100"
                                                     }`}
                                             >
                                                 <div className="flex items-start gap-3">

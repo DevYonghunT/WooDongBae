@@ -12,7 +12,7 @@ export default function CommunityPage() {
     const [data, setData] = useState<{ notices: any[], posts: any[] }>({ notices: [], posts: [] });
     const [isLoading, setIsLoading] = useState(true);
 
-    // [수정] Set 대신 배열을 사용하여 상태 관리 (더 직관적)
+    // [상태] 펼쳐진 게시글 ID 관리
     const [expandedIds, setExpandedIds] = useState<string[]>([]);
 
     const fetchData = useCallback(async () => {
@@ -30,16 +30,16 @@ export default function CommunityPage() {
         fetchData();
     }, [fetchData]);
 
-    // [수정] 토글 함수 단순화 및 로그 추가
+    // [기능] 펼치기/접기 토글 (로그 추가)
     const toggleExpand = (type: "notice" | "post", id: number) => {
         const key = `${type}-${id}`;
-        console.log("클릭됨:", key); // [디버깅] F12 콘솔에서 클릭 확인 가능
+        console.log("👆 클릭됨:", key); // F12 콘솔에서 확인 가능
 
         setExpandedIds(prev => {
             if (prev.includes(key)) {
-                return prev.filter(k => k !== key); // 이미 있으면 제거 (접기)
+                return prev.filter(k => k !== key); // 이미 있으면 닫기
             } else {
-                return [...prev, key]; // 없으면 추가 (펼치기)
+                return [...prev, key]; // 없으면 열기
             }
         });
     };
@@ -69,6 +69,7 @@ export default function CommunityPage() {
             </div>
 
             <div className="max-w-4xl mx-auto px-4 py-8">
+                {/* 탭 버튼 영역 */}
                 <div className="flex items-center justify-between mb-6">
                     <div className="flex p-1 bg-gray-100 rounded-xl">
                         <button
@@ -102,12 +103,13 @@ export default function CommunityPage() {
                     )}
                 </div>
 
+                {/* 게시글 목록 영역 */}
                 <div className="space-y-3">
                     {isLoading ? (
                         <div className="text-center py-20 text-gray-400">로딩 중...</div>
                     ) : (
                         <>
-                            {/* 공지사항 탭 */}
+                            {/* === 공지사항 탭 === */}
                             {activeTab === "notice" && (
                                 <div className="space-y-3">
                                     {data.notices.length === 0 ? (
@@ -119,7 +121,7 @@ export default function CommunityPage() {
                                             const isExpanded = expandedIds.includes(`notice-${notice.id}`);
                                             return (
                                                 <div
-                                                    key={notice.id}
+                                                    key={`notice-${notice.id}`}
                                                     onClick={() => toggleExpand("notice", notice.id)}
                                                     className={`p-5 rounded-2xl border transition-all hover:shadow-md cursor-pointer relative overflow-hidden ${notice.is_pinned
                                                             ? "bg-primary-50/50 border-primary-100"
@@ -146,19 +148,20 @@ export default function CommunityPage() {
                                                             </div>
                                                             <h3 className="font-bold text-gray-800 text-lg mb-2">{notice.title}</h3>
 
-                                                            {/* 내용 애니메이션 부분 */}
+                                                            {/* 애니메이션 컨테이너: line-clamp 없이 높이로만 제어 */}
                                                             <motion.div
                                                                 initial={false}
-                                                                animate={{ height: isExpanded ? "auto" : "2.5rem" }} // 접혔을 때 높이 강제 지정 (약 2줄)
+                                                                animate={{ height: isExpanded ? "auto" : 40 }} // 접히면 40px, 펼치면 자동
+                                                                transition={{ duration: 0.3 }}
                                                                 className="overflow-hidden"
                                                             >
-                                                                <p className={`text-gray-600 text-sm leading-relaxed ${isExpanded ? "whitespace-pre-wrap" : "line-clamp-2"
-                                                                    }`}>
+                                                                <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-wrap">
                                                                     {notice.content}
                                                                 </p>
                                                             </motion.div>
 
-                                                            <div className="mt-2 text-xs text-gray-400 text-right">
+                                                            {/* 더보기 버튼 힌트 */}
+                                                            <div className="mt-2 text-xs text-gray-400 text-right font-medium">
                                                                 {isExpanded ? "접기 ▲" : "더 보기 ▼"}
                                                             </div>
                                                         </div>
@@ -170,7 +173,7 @@ export default function CommunityPage() {
                                 </div>
                             )}
 
-                            {/* 자유게시판 탭 */}
+                            {/* === 자유게시판 탭 === */}
                             {activeTab === "free" && (
                                 <div className="space-y-3">
                                     {data.posts.length === 0 ? (
@@ -182,7 +185,7 @@ export default function CommunityPage() {
                                             const isExpanded = expandedIds.includes(`post-${post.id}`);
                                             return (
                                                 <div
-                                                    key={post.id}
+                                                    key={`post-${post.id}`}
                                                     onClick={() => toggleExpand("post", post.id)}
                                                     className="group p-5 bg-white rounded-2xl border border-gray-100 hover:border-primary-200 hover:shadow-lg transition-all cursor-pointer relative overflow-hidden"
                                                 >
@@ -201,26 +204,26 @@ export default function CommunityPage() {
                                                         {post.title}
                                                     </h3>
 
-                                                    {/* 내용 애니메이션 부분 */}
+                                                    {/* 애니메이션 컨테이너 */}
                                                     <motion.div
                                                         initial={false}
-                                                        animate={{ height: isExpanded ? "auto" : "1.5rem" }} // 접혔을 때 높이 (약 1줄)
+                                                        animate={{ height: isExpanded ? "auto" : 24 }} // 접히면 24px (약 1줄), 펼치면 자동
+                                                        transition={{ duration: 0.3 }}
                                                         className="overflow-hidden"
                                                     >
-                                                        <p className={`text-gray-500 text-sm leading-relaxed mb-3 ${isExpanded ? "whitespace-pre-wrap text-gray-700" : "line-clamp-1"
-                                                            }`}>
+                                                        <p className="text-gray-500 text-sm leading-relaxed whitespace-pre-wrap">
                                                             {post.content}
                                                         </p>
                                                     </motion.div>
 
-                                                    <div className="flex items-center justify-between text-xs border-t border-gray-50 pt-3 mt-2">
+                                                    <div className="flex items-center justify-between text-xs border-t border-gray-50 pt-3 mt-3">
                                                         <span className="font-medium text-gray-600 flex items-center gap-1">
                                                             By. {post.nickname}
                                                         </span>
                                                         <div className="flex gap-3 text-gray-400">
                                                             <span>조회 {post.view_count}</span>
-                                                            <span className="text-primary-500 font-medium">
-                                                                {isExpanded ? "접기" : "읽기"}
+                                                            <span className="text-primary-500 font-bold">
+                                                                {isExpanded ? "접기 ▲" : "읽기 ▼"}
                                                             </span>
                                                         </div>
                                                     </div>

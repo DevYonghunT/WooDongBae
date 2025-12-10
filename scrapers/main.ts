@@ -8,8 +8,8 @@ import { UniversalAiScraper } from './ai-scraper';
 const __dirname = process.cwd();
 
 // 2. .env 파일 로드
-// 루트의 .env.local을 명시적으로 로드
-const envPath = path.resolve(__dirname, '../.env.local');
+// 리포지토리 루트의 .env.local을 명시적으로 로드
+const envPath = path.resolve(__dirname, '.env.local');
 const result = dotenv.config({ path: envPath });
 
 if (result.error) {

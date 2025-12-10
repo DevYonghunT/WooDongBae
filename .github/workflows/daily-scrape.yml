@@ -54,13 +54,12 @@ jobs:
         env:
           TARGET: ${{ github.event.inputs.target }}
         run: |
-         # tsx 로더를 강제로 사용해 .ts 파일을 그대로 실행
-          export NODE_OPTIONS="--loader=tsx"
+         TARGET="${{ github.event.inputs.target }}"
 
           if [ -n "$TARGET" ]; then
             echo "🎯 타겟 지정 모드: $TARGET"
-            node scrapers/main.ts --target="$TARGET"
+            npx tsx scrapers/main.ts --target="$TARGET"
           else
             echo "🔄 전체 모드 실행"
-            node scrapers/main.ts
+            npx tsx scrapers/main.ts
           fi

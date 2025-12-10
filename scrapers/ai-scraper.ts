@@ -41,14 +41,20 @@ export class UniversalAiScraper {
             const model = this.genAI.getGenerativeModel({
                 model: "gemini-2.0-flash",
                 generationConfig: {
-                    maxOutputTokens: 8192, // 답변 길이 제한 해제 (중요!)
-                    responseMimeType: "application/json"
+                    maxOutputTokens: 8192,
+                    responseMimeType: "application/json",
+                    temperature: 0.0,
                 }
             });
 
             const prompt = `
                 You are a data extractor for Korean lifelong learning courses.
                 Extract course information from the provided web page text below.
+                
+                ** CRITICAL RULES FOR CONSISTENCY **:
+                1. EXTRACT TITLES EXACTLY AS THEY APPEAR. Do not add, remove, or summarize words.
+                2. Do not fix typos in the original text.
+                3. If the price is "0" or "free", output "무료". Otherwise output the number with "원" (e.g. "30,000원").
                 
                 **CRITICAL RULES FOR DATES (Timezone: Asia/Seoul, Current Year: 2025):**
                 1. "apply_date": Look for keywords like "접수기간", "신청기간", "모집기간".
@@ -191,7 +197,8 @@ export class UniversalAiScraper {
                     model: "gemini-2.0-flash",
                     generationConfig: {
                         maxOutputTokens: 8192,
-                        responseMimeType: "application/json"
+                        responseMimeType: "application/json",
+                        temperature: 0.0,
                     }
                 });
 
@@ -203,6 +210,8 @@ export class UniversalAiScraper {
                     1. Each course MUST have a "title". If title is unknown, DO NOT include it.
                     2. Map "교육기관" column to "institution".
                     3. Map "신청상태" to "status" ("신청가능"->"접수중", "마감"->"모집종료").
+                    4. EXTRACT TITLES EXACTLY AS THEY APPEAR. Do not summarize.
+                    5. If the price is "0" or "free", output "무료". Otherwise output the number with "원".
                     
                     **DATE EXTRACTION RULES (Current Year: 2025):**
                     - Look for "교육기간" (Education Period) column -> Map to "course_date".

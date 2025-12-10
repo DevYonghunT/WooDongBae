@@ -223,8 +223,12 @@ async function main() {
             if (courses.length > 0) {
                 // 1. 데이터 매핑
                 const dbData = courses.map(c => ({
-                    title: c.title,
-                    category: c.category,
+                    // [수정] 제목의 앞뒤 공백 제거 및 연속된 공백을 하나로 통일
+                    title: c.title.trim().replace(/\s+/g, ' '),
+
+                    // [수정] 카테고리도 깔끔하게 정리
+                    category: c.category.trim(),
+
                     target: c.target,
                     status: c.status,
                     image_url: c.image_url,

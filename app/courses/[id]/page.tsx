@@ -24,10 +24,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     }
 
     return {
-        title: `${course.title} | 우동배`,
+        title: `${course.region} ${course.category} 강좌 - ${course.title} | 우동배`,
         description: `"${course.institution}"에서 진행하는 "${course.category}" 강좌입니다. 수강료: ${course.price}. 우동배에서 자세한 정보를 확인하세요.`,
         openGraph: {
-            title: `${course.title} | 우동배`,
+            title: `${course.region} ${course.category} 강좌 - ${course.title} | 우동배`,
             description: `"${course.institution}"에서 진행하는 "${course.category}" 강좌입니다.`,
             images: [
                 {
@@ -45,6 +45,34 @@ export default async function CourseDetailPage({ params }: PageProps) {
     const { id } = await params;
     const course = await getCourseById(id);
 
+    if (!course) notFound();
+
+    const jsonLd = {
+        '@context': 'https://schema.org',
+        '@type': 'Course',
+        name: course.title,
+        description: `${course.institution}에서 진행하는 ${course.category} 강좌입니다.`,
+        provider: {
+            '@type': 'Organization',
+            name: course.institution,
+            sameAs: course.link
+        },
+        offers: {
+            '@type': 'Offer',
+            category: course.price === '무료' ? 'Free' : 'Paid',
+            priceCurrency: 'KRW',
+            price: course.price.replace(/[^0-9]/g, ''),
+            availability: course.status === '접수중' ? 'https://schema.org/InStock' : 'https://schema.org/SoldOut'
+        },
+        hasCourseInstance: {
+            '@type': 'CourseInstance',
+            courseMode: 'OnSite',
+            location: course.place,
+            startDate: course.courseDate?.split('~')[0]?.trim(),
+            endDate: course.courseDate?.split('~')[1]?.trim(),
+        }
+    };
+
     if (!course) {
         notFound();
     }
@@ -53,6 +81,10 @@ export default async function CourseDetailPage({ params }: PageProps) {
 
     return (
         <main className="min-h-screen bg-white pb-20">
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+            />
             {/* 1. Hero Section */}
             <section className="bg-stone-50 border-b border-gray-200">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">

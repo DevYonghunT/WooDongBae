@@ -114,6 +114,7 @@ export default function CourseExplorer() {
     // 1. 대분류 목록
     const majorRegions = useMemo(() => {
         const regions = new Set<string>(["전체 지역"]);
+
         filterData.forEach(item => {
             const r = item.region?.trim();
             if (!r) return;
@@ -123,15 +124,13 @@ export default function CourseExplorer() {
         });
 
         return Array.from(regions).sort((a, b) => {
-            // 1순위: 전체 지역
+            // [수정] 정렬 로직 강화
             if (a === "전체 지역") return -1;
             if (b === "전체 지역") return 1;
 
-            // 2순위: 서울특별시
             if (a === "서울특별시") return -1;
             if (b === "서울특별시") return 1;
 
-            // 3순위: 나머지 가나다 순
             return a.localeCompare(b, 'ko');
         });
     }, [filterData]);

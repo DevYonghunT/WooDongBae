@@ -19,13 +19,14 @@ export async function getFilterMetadata() {
         const { data, error } = await supabase
             .from('courses')
             .select('region, institution')
-            .not('region', 'is', null);
+            .not('region', 'is', null)
+            .range(0, 9999); // [수정] 1000개 제한 돌파 (메타데이터 로드용)
 
         if (error) throw error;
         return data || [];
     } catch (error) {
         console.error('Failed to fetch metadata:', error);
-        throw error; // [수정 3] 에러 전파 (swallowing 방지)
+        return []; // 에러 시 빈 배열 반환 (앱 멈춤 방지)
     }
 }
 

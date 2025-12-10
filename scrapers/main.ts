@@ -1,15 +1,21 @@
 import { createClient } from '@supabase/supabase-js';
 import * as dotenv from 'dotenv';
 import path from 'path';
+import { fileURLToPath } from 'url'; // [주석 해제] url 모듈 사용
 import { UniversalAiScraper } from './ai-scraper.ts';
 
-// [수정] 실행 위치(프로젝트 루트) 기준으로 .env.local 찾기
-const envPath = path.resolve(process.cwd(), '.env.local');
+// 1. [수정] ES Module 환경에서 __dirname을 파일 기준으로 정확하게 설정
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// 2. .env 파일 로드 (파일 위치 기준 상위 폴더 찾기)
+const envPath = path.resolve(__dirname, '../.env.local');
 const result = dotenv.config({ path: envPath });
 
 if (result.error) {
-    console.log("⚠️ 상위 폴더의 .env.local 로드 실패, 현재 폴더에서 시도합니다.");
-    dotenv.config(); // fallback to default
+    console.log(`⚠️ 설정된 경로(${envPath})에서 .env.local을 찾을 수 없습니다.`);
+    // 만약 실패하면 현재 폴더의 .env라도 시도
+    dotenv.config();
 }
 
 console.log("📂 로드된 환경 변수 목록:");

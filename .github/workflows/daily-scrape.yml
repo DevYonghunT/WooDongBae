@@ -32,8 +32,8 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
-      - name: 📦 의존성 패키지 설치
-        run: npm ci
+      - name: 📦 의존성 패키지 설치 (dev 포함)
+        run: npm ci --include=dev
 
       - name: 🎭 Playwright 브라우저 설치
         run: npx playwright install --with-deps chromium

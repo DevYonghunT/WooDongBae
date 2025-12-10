@@ -249,7 +249,11 @@ async function main() {
                 // 3. 데이터 저장 (Upsert)
                 const { error } = await supabase
                     .from('courses')
-                    .upsert(uniqueDbData, { onConflict: 'institution, title' });
+                    .upsert(uniqueDbData, {
+                        onConflict: 'institution, title', // 이 부분이 DB의 제약조건과 일치해야 함
+                        ignoreDuplicates: false // 중복이면 업데이트(덮어쓰기) 하라는 뜻
+                    });
+                console.log(error);
 
                 if (error) console.error("🔥 저장 실패:", error.message);
                 else console.log(`✨ ${uniqueDbData.length}건 저장/업데이트 완료!`);

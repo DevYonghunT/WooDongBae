@@ -1,14 +1,12 @@
-import type { Metadata, Viewport } from "next";
+import type { Metadata } from "next";
 import { Noto_Sans_KR } from "next/font/google";
 import "./globals.css";
-// [삭제] 기존 아이콘 임포트 삭제 (Header.tsx로 이동함)
-// import { Search, Menu, User, LogIn } from "lucide-react"; 
 import Link from "next/link";
 import Script from "next/script";
-import ScrollToTopButton from "@/components/ScrollToTopButton"; // [추가]
-import FeedbackWidget from "@/components/FeedbackWidget"; // [추가]
-import Header from "@/components/Header"; // [추가] 새로 만든 헤더 임포트
-import AlertWidget from "@/components/AlertWidget"; // [추가]
+import ScrollToTopButton from "@/components/ScrollToTopButton";
+import FeedbackWidget from "@/components/FeedbackWidget";
+import Header from "@/components/Header";
+import PushNotificationButton from "@/components/PushNotificationButton"; // 👈 [1. 추가] 임포트
 
 const notoSansKr = Noto_Sans_KR({
   subsets: ["latin"],
@@ -20,18 +18,17 @@ export const metadata: Metadata = {
   title: "우동배 - 우리 동네 배움터",
   description: "우리 동네의 문화센터 강좌 정보를 한눈에!",
   manifest: "/manifest.json",
+  themeColor: "#f97316",
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 1,
+  },
   icons: {
     icon: "/icon.png",
     apple: "/icon.png",
     shortcut: "/icon.png",
   },
-};
-
-export const viewport: Viewport = {
-  themeColor: "#f97316",
-  width: "device-width",
-  initialScale: 1,
-  maximumScale: 1,
 };
 
 export default function RootLayout({
@@ -51,7 +48,7 @@ export default function RootLayout({
           strategy="afterInteractive"
         />
         <meta name="google-adsense-account" content="ca-pub-3362378426446704"></meta>
-        {/* [수정] 기존 header 태그 전체를 Header 컴포넌트로 교체 */}
+
         <Header />
 
         <main className="min-h-screen">
@@ -64,10 +61,10 @@ export default function RootLayout({
             <p className="text-sm">© 2025 우동배 (우리 동네 배움터). All rights reserved.</p>
           </div>
         </footer>
-        {/* [추가] 맨 위로 가기 버튼 (전역 배치) */}
+
         {/* 플로팅 버튼들 */}
-        <FeedbackWidget /> {/* 좌측 하단 */}
-        <AlertWidget /> {/* [추가] 키워드 알림 위젯 */}
+        <PushNotificationButton /> {/* 👈 [2. 추가] 여기에 넣었습니다! */}
+        <FeedbackWidget />
         <ScrollToTopButton />
       </body>
     </html>

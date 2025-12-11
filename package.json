@@ -25,12 +25,14 @@
         "react": "^19.2.1",
         "react-dom": "^19.2.1",
         "resend": "^6.6.0",
-        "tailwind-merge": "^3.4.0"
+        "tailwind-merge": "^3.4.0",
+        "web-push": "^3.6.7"
     },
     "devDependencies": {
         "@types/node": "^20",
         "@types/react": "^18",
         "@types/react-dom": "^18",
+        "@types/web-push": "^3.6.4",
         "autoprefixer": "^10.4.22",
         "eslint": "^9.39.1",
         "eslint-config-next": "^16.0.7",

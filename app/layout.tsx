@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Noto_Sans_KR } from "next/font/google";
 import "./globals.css";
 // [삭제] 기존 아이콘 임포트 삭제 (Header.tsx로 이동함)
@@ -18,6 +18,14 @@ const notoSansKr = Noto_Sans_KR({
 export const metadata: Metadata = {
   title: "우동배 - 우리 동네 배움터",
   description: "우리 동네의 문화센터 강좌 정보를 한눈에!",
+  manifest: "/manifest.json",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#f97316",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
 };
 
 export default function RootLayout({

@@ -19,6 +19,11 @@ export const metadata: Metadata = {
   title: "우동배 - 우리 동네 배움터",
   description: "우리 동네의 문화센터 강좌 정보를 한눈에!",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/icon.png",
+    apple: "/icon.png",
+    shortcut: "/icon.png",
+  },
 };
 
 export const viewport: Viewport = {

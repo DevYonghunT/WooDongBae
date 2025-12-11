@@ -8,6 +8,7 @@ import Script from "next/script";
 import ScrollToTopButton from "@/components/ScrollToTopButton"; // [추가]
 import FeedbackWidget from "@/components/FeedbackWidget"; // [추가]
 import Header from "@/components/Header"; // [추가] 새로 만든 헤더 임포트
+import AlertWidget from "@/components/AlertWidget"; // [추가]
 
 const notoSansKr = Noto_Sans_KR({
   subsets: ["latin"],
@@ -66,6 +67,7 @@ export default function RootLayout({
         {/* [추가] 맨 위로 가기 버튼 (전역 배치) */}
         {/* 플로팅 버튼들 */}
         <FeedbackWidget /> {/* 좌측 하단 */}
+        <AlertWidget /> {/* [추가] 키워드 알림 위젯 */}
         <ScrollToTopButton />
       </body>
     </html>

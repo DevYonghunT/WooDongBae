@@ -4,6 +4,8 @@ import path from 'path';
 import { fileURLToPath } from 'url'; // [주석 해제] url 모듈 사용
 import { UniversalAiScraper } from './ai-scraper.ts';
 import { fetchAndSaveSeoulData } from './seoul-api.ts'; // [추가] 서울시 API 함수 임포트
+import { runAlertJob } from './alert-job.ts';
+
 
 // 1. [수정] ES Module 환경에서 __dirname을 파일 기준으로 정확하게 설정
 const __filename = fileURLToPath(import.meta.url);
@@ -280,6 +282,13 @@ async function main() {
     console.log("------------------------------------------------\n");
 
     console.log("\n🎉 모든 크롤링 및 API 동기화 작업이 완료되었습니다!");
+
+    console.log("\n------------------------------------------------");
+    await runAlertJob();
+    console.log("------------------------------------------------\n");
+
+    console.log("\n🎉 모든 크롤링, API 동기화, 알림 발송이 완료되었습니다!");
+
 }
 
 main();

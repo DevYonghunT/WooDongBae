@@ -10,8 +10,10 @@ const supabase = createClient(
 export default function GoogleLoginButton() {
     const handleLogin = async () => {
         const { data, error } = await supabase.auth.signInWithOAuth({
-            provider: 'google', // 👈 여기가 핵심! google로 변경
+            provider: 'google',
             options: {
+                // 👇 [핵심 수정] 로그인이 끝나면 반드시 이 '콜백 주소'로 돌아오게 해야 합니다.
+                // 그래야 'auth/callback/route.ts'가 작동해서 토큰을 숨겨줍니다.
                 redirectTo: `${window.location.origin}/auth/callback`,
                 queryParams: {
                     access_type: 'offline',

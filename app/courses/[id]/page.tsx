@@ -99,7 +99,7 @@ export default async function CourseDetailPage({ params }: PageProps) {
                         </Link>
                         <div className="flex gap-2">
                             {/* [수정] 기존 button 태그를 BookmarkButton 컴포넌트로 교체 */}
-                            <BookmarkButton course={course} />
+                            <BookmarkButton courseId={Number(course.id)} />
                         </div>
                     </div>
 

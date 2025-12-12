@@ -48,7 +48,8 @@ export default function CourseCard({ course, viewMode = 'grid' }: CourseCardProp
 
                         {/* [추가] 찜하기 버튼 -> 우측 상단 */}
                         <div className="absolute top-3 right-3 z-10">
-                            <BookmarkButton course={course} />
+                            {/* course.id를 courseId 속성에 넣어줍니다. (숫자면 숫자로, 문자면 문자로 DB에 맞게) */}
+                            <BookmarkButton courseId={Number(course.id)} />
                         </div>
                     </div>
 
@@ -134,7 +135,8 @@ export default function CourseCard({ course, viewMode = 'grid' }: CourseCardProp
 
                     {/* [추가] 찜하기 버튼 -> 우측 상단 */}
                     <div className="absolute top-3 right-3 z-10">
-                        <BookmarkButton course={course} />
+                        {/* ✅ courseId 라는 이름으로, ID 숫자를 넘겨줘야 합니다 */}
+                        <BookmarkButton courseId={Number(course.id)} />
                     </div>
 
                     {/* 지역 배지 (기존 유지) */}

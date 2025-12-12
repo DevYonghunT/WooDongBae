@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { BellRing } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
+// 👇 상대 경로로 수정하여 안전하게 가져옵니다
+import { useLoginModal } from "../store/useLoginModal";
 
-// 클라이언트 사이드에서만 Supabase 사용
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -13,6 +14,7 @@ const supabase = createClient(
 export default function PushNotificationButton() {
     const [isSubscribed, setIsSubscribed] = useState(false);
     const [loading, setLoading] = useState(false);
+    const { openModal } = useLoginModal(); // 로그인 모달 제어
 
     // VAPID 키 변환 헬퍼 함수
     const urlBase64ToUint8Array = (base64String: string) => {
@@ -27,42 +29,42 @@ export default function PushNotificationButton() {
     };
 
     const handleSubscribe = async () => {
+        // 1. 로그인 체크 (로그인 안 했으면 모달 띄우고 중단)
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user) {
+            openModal("새로운 강좌 알림을 받으려면\n로그인이 필요해요! 🔔");
+            return;
+        }
+
         setLoading(true);
         try {
-            // 1. 브라우저 지원 확인
             if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
                 alert("이 브라우저는 푸시 알림을 지원하지 않습니다.");
                 return;
             }
 
-            // 2. 권한 요청
             const permission = await Notification.requestPermission();
             if (permission !== "granted") {
                 alert("알림 권한이 거부되었습니다. 브라우저 설정에서 허용해주세요.");
                 return;
             }
 
-            // 3. 서비스 워커 등록 확인
             const registration = await navigator.serviceWorker.ready;
-
-            // 4. 구독 정보 생성 (브라우저 -> 구글/애플 서버)
             const subscription = await registration.pushManager.subscribe({
                 userVisibleOnly: true,
                 applicationServerKey: urlBase64ToUint8Array(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!),
             });
 
-            // 5. 내 DB(Supabase)에 저장
+            // DB 저장 (user.id 포함)
             const { error } = await supabase.from("push_subscriptions").insert({
                 endpoint: subscription.endpoint,
                 keys: subscription.toJSON().keys,
+                user_id: user.id, // 로그인한 유저 ID 저장
             });
 
             if (error) {
-                if (error.code === "23505") { // 중복 에러 무시
-                    console.log("이미 등록된 기기입니다.");
-                } else {
-                    throw error;
-                }
+                if (error.code !== "23505") throw error; // 중복 에러는 무시
             }
 
             setIsSubscribed(true);
@@ -80,12 +82,13 @@ export default function PushNotificationButton() {
         <button
             onClick={handleSubscribe}
             disabled={loading || isSubscribed}
-            className={`fixed top-20 right-4 z-40 p-3 rounded-full shadow-lg transition-all ${isSubscribed
+            // 👇 이 부분(스타일)이 복구되었습니다!
+            className={`fixed top-20 right-4 z-40 p-3 rounded-full shadow-lg transition-all active:scale-95 ${isSubscribed
                     ? "bg-gray-100 text-gray-400 cursor-default"
-                    : "bg-white text-primary-600 hover:bg-primary-50 border border-primary-100"
+                    : "bg-white text-orange-500 hover:bg-orange-50 border border-orange-100 animate-in fade-in zoom-in"
                 }`}
         >
-            <BellRing className={`w-5 h-5 ${isSubscribed ? "" : "animate-pulse"}`} />
+            <BellRing className={`w-6 h-6 ${isSubscribed ? "" : "animate-pulse"}`} />
         </button>
     );
 }

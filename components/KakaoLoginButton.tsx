@@ -34,7 +34,7 @@ export default function KakaoLoginButton() {
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
                 <path d="M12 3C6.5 3 2 6.6 2 11C2 13.5 3.7 15.8 6.4 17.2L5.3 21C5.2 21.3 5.5 21.6 5.8 21.4L10.3 18.4C10.9 18.5 11.4 18.5 12 18.5C17.5 18.5 22 14.9 22 10.5C22 6.1 17.5 3 12 3Z" />
             </svg>
-            <span>카카오로 3초 만에 시작하기</span>
+            <span>카카오로 시작하기</span>
         </button>
     );
 }

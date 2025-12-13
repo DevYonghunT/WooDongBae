@@ -1,103 +1,142 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
-import { User } from "@supabase/supabase-js";
-import { Heart, User as UserIcon, Menu, X } from "lucide-react";
-import LoginModal from "./LoginModal";
-import { useLoginModal } from "../store/useLoginModal"; // 👈 추가
-
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { Search, Menu, X, Heart } from "lucide-react";
+import { useLoginModal } from "../store/useLoginModal";
+// 👇 핵심 변경: @supabase/ssr 기반의 클라이언트 사용
+import { createClient } from "@/utils/supabase/client";
 
 export default function Header() {
-    const [user, setUser] = useState<User | null>(null);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-
-    // 👇 스토어 사용 (setIsModalOpen 같은 로컬 상태 제거)
     const { openModal } = useLoginModal();
+    const [user, setUser] = useState<any>(null);
+
+    // 👇 컴포넌트 내부에서 클라이언트 생성
+    const supabase = createClient();
 
     useEffect(() => {
+        // 1. 현재 로그인 상태 확인 (쿠키도 잘 읽습니다!)
         const checkUser = async () => {
             const { data: { user } } = await supabase.auth.getUser();
             setUser(user);
         };
         checkUser();
 
+        // 2. 로그인/로그아웃 변화 감지
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             setUser(session?.user ?? null);
+            if (_event === 'SIGNED_OUT') {
+                setUser(null);
+                window.location.href = "/"; // 로그아웃 시 홈으로 새로고침
+            }
         });
 
         return () => subscription.unsubscribe();
-    }, []);
+    }, [supabase]); // supabase 의존성 추가
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
         setUser(null);
-        setIsMenuOpen(false);
-        window.location.href = "/";
     };
 
     return (
-        <>
-            <header className="sticky top-0 z-40 w-full border-b border-stone-200 bg-white/80 backdrop-blur-md">
-                {/* ... (로고 및 메뉴 부분은 동일) ... */}
+        <header className="sticky top-0 z-50 w-full border-b border-stone-100 bg-white/80 backdrop-blur-md">
+            <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
 
-                <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-                    {/* 로고 */}
-                    <Link href="/" className="flex items-center gap-2">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-500 text-white font-bold">우</div>
-                        <span className="text-xl font-bold tracking-tight text-stone-900">우동배</span>
+                {/* 로고 */}
+                <div className="flex items-center gap-2">
+                    <Link href="/" className="flex items-center gap-2" onClick={() => setIsMenuOpen(false)}>
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-500 text-white">
+                            <span className="font-bold">우</span>
+                        </div>
+                        <span className="text-xl font-bold text-stone-900">우동배</span>
+                    </Link>
+                </div>
+
+                {/* 데스크탑 메뉴 */}
+                <div className="hidden md:flex items-center gap-4">
+                    <Link href="/" className="text-sm font-medium text-stone-600 hover:text-orange-600">
+                        강좌찾기
                     </Link>
 
-                    {/* 데스크탑 메뉴 */}
-                    <div className="hidden md:flex items-center gap-4">
-                        {/* ... 강좌찾기 링크 등 ... */}
-                        <Link href="/" className="text-sm font-medium text-stone-600 hover:text-orange-600">강좌찾기</Link>
-
-                        {user ? (
-                            // 로그인 상태 (기존 코드 유지)
-                            <>
-                                <Link href="/mypage" className="text-sm font-medium text-stone-600 hover:text-orange-600 flex items-center gap-1 ml-4">
-                                    <Heart className="w-4 h-4" /> 마이페이지
-                                </Link>
-                                <div className="h-4 w-px bg-stone-200 mx-2"></div>
-                                {/* ... 프로필 및 로그아웃 ... */}
-                                <button onClick={handleLogout} className="text-sm font-medium text-stone-500 hover:text-red-500 ml-2">로그아웃</button>
-                            </>
-                        ) : (
-                            // 비로그인 상태: openModal 함수 사용
-                            <div className="flex items-center gap-2 ml-4">
-                                <button
-                                    onClick={() => openModal()}
-                                    className="text-sm font-medium text-stone-600 hover:text-orange-600 px-3 py-2"
-                                >
-                                    로그인
-                                </button>
-                                <button
-                                    onClick={() => openModal()}
-                                    className="text-sm font-bold text-white bg-orange-500 hover:bg-orange-600 px-4 py-2 rounded-full transition-colors"
-                                >
-                                    회원가입
-                                </button>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* 모바일 메뉴 버튼 (생략 - 위와 동일하게 openModal 적용) */}
-                    <div className="md:hidden">
-                        <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-stone-500 hover:text-stone-700">
-                            {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-                        </button>
-                    </div>
+                    {user ? (
+                        <>
+                            <Link href="/mypage" className="text-sm font-medium text-stone-600 hover:text-orange-600 flex items-center gap-1 ml-4">
+                                <Heart className="w-4 h-4" />
+                                마이페이지
+                            </Link>
+                            <button
+                                onClick={handleLogout}
+                                className="ml-4 text-sm font-medium text-stone-500 hover:text-stone-800"
+                            >
+                                로그아웃
+                            </button>
+                        </>
+                    ) : (
+                        <div className="flex items-center gap-2 ml-4">
+                            <button
+                                onClick={() => openModal()}
+                                className="text-sm font-medium text-stone-600 hover:text-orange-600 px-3 py-2"
+                            >
+                                로그인
+                            </button>
+                            <button
+                                onClick={() => openModal()}
+                                className="text-sm font-bold text-white bg-orange-500 hover:bg-orange-600 px-4 py-2 rounded-full transition-colors"
+                            >
+                                회원가입
+                            </button>
+                        </div>
+                    )}
                 </div>
-            </header>
 
-            {/* 모달은 여기에 한 번만 배치하면 됩니다. isOpen 상태에 따라 알아서 열립니다. */}
-            <LoginModal />
-        </>
+                {/* 모바일 메뉴 버튼 */}
+                <button
+                    className="md:hidden p-2 text-stone-600"
+                    onClick={() => setIsMenuOpen(!isMenuOpen)}
+                >
+                    {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+                </button>
+            </div>
+
+            {/* 모바일 메뉴 드롭다운 */}
+            {isMenuOpen && (
+                <div className="md:hidden border-t border-stone-100 bg-white px-4 py-6 space-y-4">
+                    <Link href="/" className="block text-base font-medium text-stone-600" onClick={() => setIsMenuOpen(false)}>
+                        강좌찾기
+                    </Link>
+
+                    {user ? (
+                        <>
+                            <Link href="/mypage" className="block text-base font-medium text-stone-600" onClick={() => setIsMenuOpen(false)}>
+                                마이페이지
+                            </Link>
+                            <button
+                                onClick={() => { handleLogout(); setIsMenuOpen(false); }}
+                                className="block text-base font-medium text-stone-500 w-full text-left"
+                            >
+                                로그아웃
+                            </button>
+                        </>
+                    ) : (
+                        <div className="flex flex-col gap-3 pt-4 border-t border-stone-100">
+                            <button
+                                onClick={() => { openModal(); setIsMenuOpen(false); }}
+                                className="w-full rounded-xl border border-stone-200 py-3 text-sm font-bold text-stone-600"
+                            >
+                                로그인
+                            </button>
+                            <button
+                                onClick={() => { openModal(); setIsMenuOpen(false); }}
+                                className="w-full rounded-xl bg-orange-500 py-3 text-sm font-bold text-white"
+                            >
+                                회원가입
+                            </button>
+                        </div>
+                    )}
+                </div>
+            )}
+        </header>
     );
 }

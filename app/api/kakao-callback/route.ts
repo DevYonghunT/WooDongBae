@@ -1,15 +1,25 @@
 import { createClient } from "@supabase/supabase-js";
+import { headers } from "next/headers";
 import { NextResponse, NextRequest } from "next/server";
+
+function getSiteUrl() {
+    const origin = headers().get("origin");
+    return process.env.NEXT_PUBLIC_SITE_URL || origin || "http://localhost:3000";
+}
 
 export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const code = searchParams.get("code");
-    const KAKAO_CLIENT_ID = "b6a8f2791cd23f7995b4fba26c649c20"; // 👈 위와 동일한 키 입력
-    const KAKAO_CLIENT_SECRET = "XRvHGAT4u5uZ3mcZaj80m5v8ol0E8sG4"; // 👈 보안 메뉴에 있던 그 코드
-    const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+    const KAKAO_CLIENT_ID = process.env.KAKAO_CLIENT_ID;
+    const KAKAO_CLIENT_SECRET = process.env.KAKAO_CLIENT_SECRET;
+    const SITE_URL = getSiteUrl();
     const REDIRECT_URI = `${SITE_URL}/api/kakao-callback`;
 
     if (!code) return NextResponse.redirect(new URL('/', request.url));
+
+    if (!KAKAO_CLIENT_ID || !KAKAO_CLIENT_SECRET) {
+        return NextResponse.json({ error: "Kakao OAuth credentials are not configured" }, { status: 500 });
+    }
 
     try {
         // 1. 인가 코드로 카카오 토큰 받기
@@ -19,7 +29,7 @@ export async function GET(request: NextRequest) {
             body: new URLSearchParams({
                 grant_type: "authorization_code",
                 client_id: KAKAO_CLIENT_ID,
-                client_secret: KAKAO_CLIENT_SECRET!,
+                client_secret: KAKAO_CLIENT_SECRET,
                 redirect_uri: REDIRECT_URI,
                 code,
             }),

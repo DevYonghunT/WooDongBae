@@ -4,36 +4,34 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Search, Menu, X, Heart } from "lucide-react";
 import { useLoginModal } from "../store/useLoginModal";
-// 👇 핵심 변경: @supabase/ssr 기반의 클라이언트 사용
 import { createClient } from "@/utils/supabase/client";
+
+// 👇 [추가] 로그인 모달 컴포넌트를 가져옵니다.
+
 
 export default function Header() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const { openModal } = useLoginModal();
     const [user, setUser] = useState<any>(null);
-
-    // 👇 컴포넌트 내부에서 클라이언트 생성
     const supabase = createClient();
 
     useEffect(() => {
-        // 1. 현재 로그인 상태 확인 (쿠키도 잘 읽습니다!)
         const checkUser = async () => {
             const { data: { user } } = await supabase.auth.getUser();
             setUser(user);
         };
         checkUser();
 
-        // 2. 로그인/로그아웃 변화 감지
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             setUser(session?.user ?? null);
             if (_event === 'SIGNED_OUT') {
                 setUser(null);
-                window.location.href = "/"; // 로그아웃 시 홈으로 새로고침
+                window.location.href = "/";
             }
         });
 
         return () => subscription.unsubscribe();
-    }, [supabase]); // supabase 의존성 추가
+    }, [supabase]);
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
@@ -42,6 +40,9 @@ export default function Header() {
 
     return (
         <header className="sticky top-0 z-50 w-full border-b border-stone-100 bg-white/80 backdrop-blur-md">
+            {/* 👇 [추가] 모달이 화면에 존재해야 버튼을 눌렀을 때 뜹니다! */}
+
+
             <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
 
                 {/* 로고 */}

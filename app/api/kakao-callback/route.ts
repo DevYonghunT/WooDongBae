@@ -2,8 +2,9 @@ import { createClient } from "@supabase/supabase-js";
 import { headers } from "next/headers";
 import { NextResponse, NextRequest } from "next/server";
 
-function getSiteUrl() {
-    const origin = headers().get("origin");
+async function getSiteUrl() {
+    const headersList = await headers();
+    const origin = headersList.get("origin");
     return process.env.NEXT_PUBLIC_SITE_URL || origin || "http://localhost:3000";
 }
 
@@ -12,7 +13,7 @@ export async function GET(request: NextRequest) {
     const code = searchParams.get("code");
     const KAKAO_CLIENT_ID = process.env.KAKAO_CLIENT_ID;
     const KAKAO_CLIENT_SECRET = process.env.KAKAO_CLIENT_SECRET;
-    const SITE_URL = getSiteUrl();
+    const SITE_URL = await getSiteUrl();
     const REDIRECT_URI = `${SITE_URL}/api/kakao-callback`;
 
     if (!code) return NextResponse.redirect(new URL('/', request.url));

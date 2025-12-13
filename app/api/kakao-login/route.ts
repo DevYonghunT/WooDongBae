@@ -1,8 +1,9 @@
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 
-function getSiteUrl() {
-    const origin = headers().get("origin");
+async function getSiteUrl() {
+    const headersList = await headers();
+    const origin = headersList.get("origin");
     return process.env.NEXT_PUBLIC_SITE_URL || origin || "http://localhost:3000";
 }
 
@@ -13,7 +14,8 @@ export async function GET() {
         return NextResponse.json({ error: "Kakao client ID is not configured" }, { status: 500 });
     }
 
-    const REDIRECT_URI = `${getSiteUrl()}/api/kakao-callback`;
+    const siteUrl = await getSiteUrl();
+    const REDIRECT_URI = `${siteUrl}/api/kakao-callback`;
     const kakaoAuthUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${encodeURIComponent(
         KAKAO_CLIENT_ID
     )}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code`;

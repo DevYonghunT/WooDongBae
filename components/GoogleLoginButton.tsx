@@ -1,22 +1,22 @@
 "use client";
 
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// 👇 [변경] @supabase/supabase-js 대신 @supabase/ssr을 사용해야 합니다!
+import { createBrowserClient } from "@supabase/ssr";
 
 export default function GoogleLoginButton() {
+    // 👇 [변경] createClient 대신 createBrowserClient 사용
+    // 이렇게 해야 Next.js가 "아, 이거 서버 인증(PKCE) 할 거구나" 하고 알아듣습니다.
+    const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+
     const handleLogin = async () => {
-        // 👇 [핵심 수정] 환경변수 대신 현재 브라우저의 주소(origin)를 직접 사용
-        // 예: https://www.woodongbae.xyz 가 자동으로 들어갑니다.
         const currentOrigin = window.location.origin;
 
         await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
-                // 도착지는 무조건 "현재주소 + /auth/callback"
                 redirectTo: `${currentOrigin}/auth/callback`,
                 queryParams: {
                     access_type: 'offline',

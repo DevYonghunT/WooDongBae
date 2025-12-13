@@ -4,6 +4,8 @@ import { Bell, Heart, Trash2 } from "lucide-react";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
+export const dynamic = "force-dynamic";
+
 export default async function MyPage() {
     // 👇 [수정] Next.js 15에서는 cookies()가 Promise입니다. await 필수!
     const cookieStore = await cookies();
@@ -46,6 +48,10 @@ export default async function MyPage() {
         .from("keyword_alerts")
         .select("*")
         .eq("email", user.email || "");
+
+    // [Debug] 데이터 확인용 로그
+    console.log("[MyPage] User ID:", user.id);
+    console.log("[MyPage] Bookmarks Count:", bookmarks?.length);
 
     // 4. 삭제 액션
     async function deleteKeyword(id: number) {

@@ -1,29 +1,21 @@
 import { createClient } from "@supabase/supabase-js";
-import { headers } from "next/headers";
+import { createServerClient } from "@supabase/ssr";
 import { NextResponse, NextRequest } from "next/server";
-
-async function getSiteUrl() {
-    const headersList = await headers();
-    const origin = headersList.get("origin");
-    return process.env.NEXT_PUBLIC_SITE_URL || origin || "http://localhost:3000";
-}
 
 export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const code = searchParams.get("code");
-    const KAKAO_CLIENT_ID = process.env.KAKAO_CLIENT_ID;
-    const KAKAO_CLIENT_SECRET = process.env.KAKAO_CLIENT_SECRET;
-    const SITE_URL = await getSiteUrl();
+
+    // 환경변수 가져오기
+    const KAKAO_CLIENT_ID = process.env.KAKAO_CLIENT_ID || "b6a8f2791cd23f7995b4fba26c649c20";
+    const KAKAO_CLIENT_SECRET = process.env.KAKAO_CLIENT_SECRET || "XRvHGAT4u5uZ3mcZaj80m5v8ol0E8sG4";
+    const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https//www.woodongbae.xyz';
     const REDIRECT_URI = `${SITE_URL}/api/kakao-callback`;
 
     if (!code) return NextResponse.redirect(new URL('/', request.url));
 
-    if (!KAKAO_CLIENT_ID || !KAKAO_CLIENT_SECRET) {
-        return NextResponse.json({ error: "Kakao OAuth credentials are not configured" }, { status: 500 });
-    }
-
     try {
-        // 1. 인가 코드로 카카오 토큰 받기
+        // 1. 카카오 토큰 받기
         const tokenResponse = await fetch("https://kauth.kakao.com/oauth/token", {
             method: "POST",
             headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -43,44 +35,95 @@ export async function GET(request: NextRequest) {
         });
         const userData = await userResponse.json();
 
-        // 3. 가짜 이메일 생성 (카카오ID @ fake.com)
+        // 3. 가짜 이메일 생성
         const kakaoId = userData.id;
         const nickname = userData.properties?.nickname || "카카오 유저";
         const avatarUrl = userData.properties?.profile_image || "";
-        const fakeEmail = `${kakaoId}@kakao.woodongbae.xyz`; // 👈 가짜 이메일!
+        const fakeEmail = `${kakaoId}@kakao.woodongbae.xyz`;
 
-        // 4. Supabase Admin으로 유저 강제 처리
+        // 4. Supabase Admin으로 유저 처리
         const supabaseAdmin = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
             process.env.SUPABASE_SERVICE_ROLE_KEY!
         );
 
-        // 이미 있는 유저인지 확인
+        // 유저 확인 및 생성
         const { data: existingUser } = await supabaseAdmin.from("profiles").select("*").eq("email", fakeEmail).single();
 
         if (!existingUser) {
-            // 없으면 회원가입 (Admin 권한으로 강제 생성)
             await supabaseAdmin.auth.admin.createUser({
                 email: fakeEmail,
-                email_confirm: true, // 이메일 인증 통과시킴
+                email_confirm: true,
                 user_metadata: { full_name: nickname, avatar_url: avatarUrl, iss: 'kakao' }
             });
         }
 
-        // 5. 로그인 세션 생성 (매직 링크 방식 이용)
-        // 비밀번호 없이 로그인시키기 위해, 1회용 로그인 링크를 생성해서 바로 이동시킵니다.
+        // 5. 매직 링크 생성
         const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
             type: 'magiclink',
             email: fakeEmail,
-            options: {
-                redirectTo: `${SITE_URL}/`, // 로그인 성공 후 홈으로
-            }
+            options: { redirectTo: `${SITE_URL}/` }
         });
 
         if (linkError) throw linkError;
 
-        // 6. 매직 링크로 리다이렉트 (사용자는 깜빡거림 후 로그인됨)
-        return NextResponse.redirect(linkData.properties.action_link);
+        // ---------------------------------------------------------
+        // 🚀 [핵심 변경] 서버에서 토큰 교환 및 쿠키 설정 (SSR 호환)
+        // ---------------------------------------------------------
+
+        // 생성된 매직링크(action_link)를 서버가 대신 방문해서 토큰을 가로챕니다.
+        const actionLink = linkData.properties.action_link;
+        const verifyRes = await fetch(actionLink, {
+            method: 'GET',
+            redirect: 'manual', // 자동으로 이동하지 말고 멈춰! (토큰을 뺏기 위해)
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Compatible; Server-Side-Auth)' // 봇 차단 방지
+            }
+        });
+
+        // Supabase가 돌려준 주소(Location 헤더)에 토큰이 들어있습니다.
+        const location = verifyRes.headers.get('location');
+
+        let accessToken = '';
+        let refreshToken = '';
+
+        if (location && location.includes('#')) {
+            // URL 해시(#access_token=...)에서 토큰 추출
+            const params = new URLSearchParams(location.split('#')[1]);
+            accessToken = params.get('access_token') || '';
+            refreshToken = params.get('refresh_token') || '';
+        }
+
+        // 토큰을 못 찾았다면, 구버전 방식(그냥 이동)으로 폴백
+        if (!accessToken || !refreshToken) {
+            return NextResponse.redirect(actionLink);
+        }
+
+        // ✅ 토큰을 쿠키에 굽기
+        const response = NextResponse.redirect(`${SITE_URL}/`); // 최종 목적지는 홈
+
+        const supabase = createServerClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            {
+                cookies: {
+                    getAll() { return request.cookies.getAll(); },
+                    setAll(cookiesToSet) {
+                        cookiesToSet.forEach(({ name, value, options }) => {
+                            response.cookies.set(name, value, options);
+                        });
+                    },
+                },
+            }
+        );
+
+        // Supabase 세션 설정
+        await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+        });
+
+        return response;
 
     } catch (error) {
         console.error("카카오 로그인 실패:", error);

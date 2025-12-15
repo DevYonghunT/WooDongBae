@@ -89,7 +89,7 @@ export default async function MyPage() {
                         <h1 className="text-2xl font-bold text-stone-800">
                             {user.user_metadata.full_name || user.user_metadata.name || "사용자"}님, 안녕하세요! 👋
                         </h1>
-                        {!user.email.includes('woodongbae.xyz') && (
+                        {!user.email?.includes('woodongbae.xyz') && (
                             <p className="text-stone-500 mt-1">{user.email}</p>
                         )}
                     </div>

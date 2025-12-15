@@ -47,6 +47,12 @@ jobs:
         if: steps.opts.outputs.mode == 'full'
         run: yarn playwright install --with-deps chromium
 
+      - name: 🔎 Check secrets wiring (safe)
+        run: |
+          if [ -z "${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}" ]; then echo "secrets.NEXT_PUBLIC_SUPABASE_URL = EMPTY"; else echo "secrets.NEXT_PUBLIC_SUPABASE_URL = SET"; fi
+          if [ -z "${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" ]; then echo "secrets.SUPABASE_SERVICE_ROLE_KEY = EMPTY"; else echo "secrets.SUPABASE_SERVICE_ROLE_KEY = SET"; fi
+
+
       - name: 🔐 Write .env.local
         shell: bash
         env:

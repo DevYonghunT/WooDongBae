@@ -140,10 +140,27 @@ export async function fetchAndSaveSeoulData() {
             };
         });
 
+        // ✅ (institution, title) 기준 중복 제거 + 공백 정규화
+        const normalize = (s: any) => String(s ?? "").trim().replace(/\s+/g, " ");
+
+        const normalizedCourses = coursesToUpsert.map(c => ({
+            ...c,
+            institution: normalize(c.institution),
+            title: normalize(c.title),
+        }));
+
+        const uniqueCourses = Array.from(
+            new Map(
+                normalizedCourses.map(item => [`${item.institution}||${item.title}`, item])
+            ).values()
+        );
+
+        console.log(`🧹 [서울시 API] 중복 제거: ${coursesToUpsert.length} -> ${uniqueCourses.length}`);
+
         // 배치 저장
         const BATCH_SIZE = 500;
-        for (let i = 0; i < coursesToUpsert.length; i += BATCH_SIZE) {
-            const batch = coursesToUpsert.slice(i, i + BATCH_SIZE);
+        for (let i = 0; i < uniqueCourses.length; i += BATCH_SIZE) {
+            const batch = uniqueCourses.slice(i, i + BATCH_SIZE);
             const { error } = await supabase.from('courses').upsert(batch, {
                 onConflict: 'institution, title',
                 ignoreDuplicates: false

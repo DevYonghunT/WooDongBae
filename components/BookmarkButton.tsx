@@ -31,31 +31,62 @@ export default function BookmarkButton({ courseId, initialIsBookmarked = false }
             return;
         }
 
-        // 2. 찜 토글 로직
+        // 2. 찜 토글 로직 (Check-then-Act)
+        // Optimistic UI는 유지하되, 실제 로직은 DB 상태를 확인 후 수행
         const newStatus = !isBookmarked;
-        setIsBookmarked(newStatus); // UI 먼저 반영 (Optimistic UI)
+        setIsBookmarked(newStatus);
 
         try {
-            if (newStatus) {
-                // 찜 추가
-                const { error } = await supabase
-                    .from("bookmarks")
-                    .insert({ user_id: user.id, course_id: courseId });
-                if (error) throw error;
-            } else {
-                // 찜 삭제
-                const { error } = await supabase
+            // [중요] 먼저 DB에 이미 찜이 되어있는지 확인
+            // (내 로컬 state와 DB 상태가 다를 수 있으므로)
+            const { data: existingBookmark, error: checkError } = await supabase
+                .from("bookmarks")
+                .select("id")
+                .eq("user_id", user.id)
+                .eq("course_id", courseId)
+                .maybeSingle();
+
+            if (checkError) throw checkError;
+
+            if (existingBookmark) {
+                // 이미 존재함 -> 삭제 (Delete)
+                const { error: deleteError } = await supabase
                     .from("bookmarks")
                     .delete()
-                    .match({ user_id: user.id, course_id: courseId });
-                if (error) throw error;
+                    .eq("id", existingBookmark.id); // ID로 정확히 삭제
+
+                if (deleteError) throw deleteError;
+
+                // 만약 UI가 "찜 안됨" 상태였다면(newStatus === true),
+                // 근데 실제론 DB에 있어서 삭제했다면? -> UI를 다시 false로 맞춰줌
+                if (newStatus === true) {
+                    // 사용자는 "찜하기"를 눌렀는데, 실제론 "취소"가 된 셈.
+                    // 이 경우 그냥 찜 상태를 유지하는 게 나을 수도 있고 취소하는 게 나을 수도 있음.
+                    // 보통 "토글"이니까 삭제했으면 빈 하트가 맞음.
+                    setIsBookmarked(false);
+                }
+
+            } else {
+                // 없음 -> 추가 (Insert)
+                const { error: insertError } = await supabase
+                    .from("bookmarks")
+                    .insert({ user_id: user.id, course_id: courseId });
+
+                if (insertError) {
+                    // 동시성 이슈로 그새 누가 넣었을 수도 있음 (409) -> 무시하거나 성공 취급
+                    if (insertError.code === "23505") {
+                        // 이미 있음. OK.
+                        setIsBookmarked(true);
+                    } else {
+                        throw insertError;
+                    }
+                }
             }
+
         } catch (error) {
             console.error("찜 변경 실패:", error);
-            // 카카오 로그인의 경우 이메일이 없을 수 있음.
-            // 하지만 user.id는 반드시 존재하므로, RLS 정책만 잘 되어 있다면 문제없음.
-            // 만약 여기서 에러가 난다면 RLS 문제일 가능성이 높음.
-            setIsBookmarked(!newStatus); // 에러나면 원상복구
+            // 에러 발생 시 UI 원상복구
+            setIsBookmarked(!newStatus);
             alert(`오류가 발생했습니다.\n${error instanceof Error ? error.message : "알 수 없는 오류"}`);
         }
     };

@@ -62,7 +62,10 @@ export default function PushNotificationButton() {
             });
 
             if (error) {
+                console.error("DB 저장 실패 상세:", error); // [추가] 상세 로그
                 if (error.code !== "23505") throw error; // 중복 에러는 무시
+            } else {
+                console.log("✅ 알림 구독 정보 DB 저장 완료");
             }
 
             setIsSubscribed(true);

@@ -1,30 +1,32 @@
 import webPush from 'web-push';
 
-const rawVapidSubject = (process.env.VAPID_SUBJECT ?? process.env.NEXT_PUBLIC_VAPID_SUBJECT ?? '').trim();
-const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
+const subject =
+    (process.env.VAPID_SUBJECT ??
+        process.env.NEXT_PUBLIC_VAPID_SUBJECT ??
+        process.env.DEFAULT_VAPID_SUBJECT ??
+        "").trim();
+
+const publicKey =
+    (process.env.VAPID_PUBLIC_KEY ??
+        process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ??
+        "").trim();
+
+const privateKey = (process.env.VAPID_PRIVATE_KEY ?? "").trim();
 
 let isPushEnabled = false;
 let disableReason = '';
 
-// 1. 필수 환경변수 및 Subject 포맷 검증
-if (!vapidPublicKey || !vapidPrivateKey) {
-    disableReason = `VAPID keys are missing. Public=${!!vapidPublicKey}, Private=${!!vapidPrivateKey}`;
-} else if (!rawVapidSubject || !(rawVapidSubject.startsWith('mailto:') || rawVapidSubject.startsWith('https://'))) {
-    disableReason = `VAPID_SUBJECT is invalid. Must start with 'mailto:' or 'https://'. Current: "${rawVapidSubject}"`;
+if (!subject || !publicKey || !privateKey) {
+    disableReason = `Missing env vars. Subject=${!!subject}, Public=${!!publicKey}, Private=${!!privateKey}`;
+    console.warn("[web-push] missing env -> push disabled", {
+        subject: !!subject,
+        publicKey: !!publicKey,
+        privateKey: !!privateKey,
+    });
 } else {
-    // 2. 설정이 유효하면 VAPID 세부 정보 설정
-    try {
-        webPush.setVapidDetails(
-            rawVapidSubject,
-            vapidPublicKey,
-            vapidPrivateKey,
-        );
-        isPushEnabled = true;
-        console.log("✅ Web Push Initialized with Subject:", rawVapidSubject);
-    } catch (e: any) {
-        disableReason = `Failed to set VAPID details: ${e.message}`;
-    }
+    webPush.setVapidDetails(subject, publicKey, privateKey);
+    isPushEnabled = true;
+    console.log("✅ Web Push Initialized with Subject:", subject);
 }
 
 if (!isPushEnabled) {

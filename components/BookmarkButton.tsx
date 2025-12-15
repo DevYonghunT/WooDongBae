@@ -17,6 +17,11 @@ export default function BookmarkButton({ courseId, initialIsBookmarked = false }
     const [isBookmarked, setIsBookmarked] = useState(initialIsBookmarked);
     const { openModal } = useLoginModal();
 
+    // [추가] 부모로부터 내려오는 props가 변경되면 내부 상태도 동기화
+    useEffect(() => {
+        setIsBookmarked(initialIsBookmarked);
+    }, [initialIsBookmarked]);
+
     // (선택사항) 처음 로드될 때 내가 찜했는지 확인하는 로직 추가 가능
 
     const toggleBookmark = async (e: React.MouseEvent) => {

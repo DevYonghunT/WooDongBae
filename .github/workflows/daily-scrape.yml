@@ -48,6 +48,7 @@ jobs:
         run: yarn playwright install --with-deps chromium
 
       - name: 🔐 Write .env.local
+        shell: bash
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -56,20 +57,40 @@ jobs:
           NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${{ secrets.NEXT_PUBLIC_VAPID_PUBLIC_KEY }}
           VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
           VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
-          DEFAULT_VAPID_SUBJECT: ${{ env.DEFAULT_VAPID_SUBJECT }}
         run: |
-          : "${VAPID_SUBJECT:=}"
-          SUBJECT_VALUE=$(echo "${VAPID_SUBJECT}" | tr -d '\r' | xargs)
+          # 1) .env.local은 항상 "덮어쓰기"로 생성 (기존 파일 영향 제거)
+          rm -f .env.local
+
+          # 2) subject 결정: secret 없으면 DEFAULT로 대체
+          SUBJECT_VALUE="$(echo "${VAPID_SUBJECT:-}" | tr -d '\r' | xargs)"
           if [ -z "$SUBJECT_VALUE" ]; then
-            SUBJECT_VALUE="$DEFAULT_VAPID_SUBJECT"
+            SUBJECT_VALUE="${DEFAULT_VAPID_SUBJECT}"
           fi
-          echo "NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL" >> .env.local
-          echo "SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY" >> .env.local
-          echo "NEXT_PUBLIC_API_KEY=$NEXT_PUBLIC_API_KEY" >> .env.local
-          echo "GEMINI_API_KEY=$GEMINI_API_KEY" >> .env.local
-          echo "NEXT_PUBLIC_VAPID_PUBLIC_KEY=$NEXT_PUBLIC_VAPID_PUBLIC_KEY" >> .env.local
-          echo "VAPID_PRIVATE_KEY=$VAPID_PRIVATE_KEY" >> .env.local
-          echo "VAPID_SUBJECT=$SUBJECT_VALUE" >> .env.local
+
+          # 3) 안전하게 파일 작성 (서버/클라 변수 모두 넣어줌)
+          {
+            printf 'NEXT_PUBLIC_SUPABASE_URL=%s\n' "$NEXT_PUBLIC_SUPABASE_URL"
+            printf 'SUPABASE_SERVICE_ROLE_KEY=%s\n' "$SUPABASE_SERVICE_ROLE_KEY"
+            printf 'NEXT_PUBLIC_API_KEY=%s\n' "$NEXT_PUBLIC_API_KEY"
+            printf 'GEMINI_API_KEY=%s\n' "$GEMINI_API_KEY"
+            printf 'NEXT_PUBLIC_VAPID_PUBLIC_KEY=%s\n' "$NEXT_PUBLIC_VAPID_PUBLIC_KEY"
+            printf 'VAPID_PUBLIC_KEY=%s\n' "$NEXT_PUBLIC_VAPID_PUBLIC_KEY"
+            printf 'VAPID_PRIVATE_KEY=%s\n' "$VAPID_PRIVATE_KEY"
+            printf 'VAPID_SUBJECT=%s\n' "$SUBJECT_VALUE"
+          } > .env.local
+
+      # ✅ 여기! (네가 몰랐던 “실행 step 전에 넣는” 디버그 step)
+      - name: 🔎 Debug env/.env.local (safe)
+        shell: bash
+        run: |
+          echo "---- file exists? ----"
+          ls -la .env.local || true
+
+          echo "---- .env.local has VAPID_SUBJECT? ----"
+          grep '^VAPID_SUBJECT=' .env.local || true
+
+          echo "---- dotenv load check (no secrets printed except subject) ----"
+          node -e "require('dotenv').config({ path: '.env.local' }); console.log('dotenv VAPID_SUBJECT:', process.env.VAPID_SUBJECT || '<missing>')"
 
       - name: 🚀 Run scraper
         run: |

@@ -68,6 +68,9 @@ export default function PushNotificationButton() {
             setIsSubscribed(true);
             alert("알림 설정이 완료되었습니다! 🔔");
 
+            // [추가] 데이터 갱신을 위해 페이지 리로드 (또는 router.refresh())
+            window.location.reload();
+
         } catch (error) {
             console.error("알림 설정 실패:", error);
             alert("알림 설정 중 오류가 발생했습니다.");

@@ -6,6 +6,21 @@ export async function middleware(request: NextRequest) {
         request: { headers: request.headers },
     })
 
+    // [CORS 설정] 요청된 Origin이 허용 목록에 있으면 해당 Origin으로 설정
+    const allowedOrigins = ['http://localhost:3000', 'https://woodongbae.xyz', 'https://www.woodongbae.xyz'];
+    const origin = request.headers.get('origin');
+
+    if (origin && allowedOrigins.includes(origin)) {
+        response.headers.set('Access-Control-Allow-Origin', origin);
+    } else {
+        // Fallback or default
+        response.headers.set('Access-Control-Allow-Origin', 'https://woodongbae.xyz');
+    }
+
+    response.headers.set('Access-Control-Allow-Credentials', 'true');
+    response.headers.set('Access-Control-Allow-Methods', 'GET,DELETE,PATCH,POST,PUT,OPTIONS');
+    response.headers.set('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+
     const supabase = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,

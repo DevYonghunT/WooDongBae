@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Calendar, MapPin, User, Users, Clock, Phone, Building2, ChevronLeft, Heart } from "lucide-react";
-import ShareButton from "@/components/ShareButton"; // [추가]
+import ShareButton from "@/components/ShareButton";
 import BookmarkButton from "@/components/BookmarkButton"; // [추가]
 import KakaoMap from "@/components/KakaoMap"; // [추가]
 import { Metadata } from "next"; // [추가]

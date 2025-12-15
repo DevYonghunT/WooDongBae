@@ -61,6 +61,9 @@ export default function Header() {
                         강좌찾기
                     </Link>
 
+                    <Link href="/community" className="text-sm font-medium text-stone-600 hover:text-orange-600">
+                        커뮤니티
+                    </Link>
                     {user ? (
                         <>
                             <Link href="/mypage" className="text-sm font-medium text-stone-600 hover:text-orange-600 flex items-center gap-1 ml-4">
@@ -106,6 +109,9 @@ export default function Header() {
                 <div className="md:hidden border-t border-stone-100 bg-white px-4 py-6 space-y-4">
                     <Link href="/" className="block text-base font-medium text-stone-600" onClick={() => setIsMenuOpen(false)}>
                         강좌찾기
+                    </Link>
+                    <Link href="/community" className="block text-base font-medium text-stone-600" onClick={() => setIsMenuOpen(false)}>
+                        커뮤니티
                     </Link>
 
                     {user ? (

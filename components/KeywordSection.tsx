@@ -36,21 +36,29 @@ export default function KeywordSection() {
 
     // 2. 키워드 추가하기
     const addKeyword = async () => {
-        if (!input.trim() || !userId) return;
+        if (!input.trim()) return;
         setLoading(true);
 
         try {
+            // [수정] 유저 정보 확실히 가져오기
+            const { data: { user } } = await supabase.auth.getUser();
+
+            if (!user) {
+                alert("로그인이 필요합니다.");
+                return;
+            }
+
             const { data, error } = await supabase
                 .from("keywords")
-                .insert({ user_id: userId, word: input.trim() })
+                .insert({ user_id: user.id, word: input.trim() }) // user.id 직접 사용
                 .select()
                 .single();
 
             if (error) throw error;
             if (data) setKeywords([data, ...keywords]);
             setInput("");
-        } catch (error) {
-            console.error("키워드 추가 실패:", error);
+        } catch (error: any) {
+            console.error("키워드 추가 실패:", error.message || error);
             alert("키워드 추가에 실패했습니다.");
         } finally {
             setLoading(false);

@@ -61,7 +61,21 @@ jobs:
           # 1) .env.local은 항상 "덮어쓰기"로 생성 (기존 파일 영향 제거)
           rm -f .env.local
 
-          # 2) subject 결정: secret 없으면 DEFAULT로 대체
+          # 2-1) Supabase secret 검증
+          SUPABASE_URL_VALUE="$(echo "${NEXT_PUBLIC_SUPABASE_URL:-}" | tr -d '\r' | xargs)"
+          SUPABASE_KEY_VALUE="$(echo "${SUPABASE_SERVICE_ROLE_KEY:-}" | tr -d '\r' | xargs)"
+
+          if [ -z "$SUPABASE_URL_VALUE" ]; then
+            echo "❌ Missing secret: NEXT_PUBLIC_SUPABASE_URL"
+            exit 1
+          fi
+
+          if [ -z "$SUPABASE_KEY_VALUE" ]; then
+            echo "❌ Missing secret: SUPABASE_SERVICE_ROLE_KEY"
+            exit 1
+          fi
+
+          # 2-2) VAPID subject 결정: secret 없으면 DEFAULT로 대체
           SUBJECT_VALUE="$(echo "${VAPID_SUBJECT:-}" | tr -d '\r' | xargs)"
           if [ -z "$SUBJECT_VALUE" ]; then
             SUBJECT_VALUE="${DEFAULT_VAPID_SUBJECT}"
@@ -69,8 +83,8 @@ jobs:
 
           # 3) 안전하게 파일 작성 (서버/클라 변수 모두 넣어줌)
           {
-            printf 'NEXT_PUBLIC_SUPABASE_URL=%s\n' "$NEXT_PUBLIC_SUPABASE_URL"
-            printf 'SUPABASE_SERVICE_ROLE_KEY=%s\n' "$SUPABASE_SERVICE_ROLE_KEY"
+            printf 'NEXT_PUBLIC_SUPABASE_URL=%s\n' "$SUPABASE_URL_VALUE"
+            printf 'SUPABASE_SERVICE_ROLE_KEY=%s\n' "$SUPABASE_KEY_VALUE"
             printf 'NEXT_PUBLIC_API_KEY=%s\n' "$NEXT_PUBLIC_API_KEY"
             printf 'GEMINI_API_KEY=%s\n' "$GEMINI_API_KEY"
             printf 'NEXT_PUBLIC_VAPID_PUBLIC_KEY=%s\n' "$NEXT_PUBLIC_VAPID_PUBLIC_KEY"
@@ -93,6 +107,8 @@ jobs:
 
           echo "---- dotenv load check (no secrets printed except subject) ----"
           node -e "require('dotenv').config({ path: '.env.local' }); console.log('dotenv VAPID_SUBJECT:', process.env.VAPID_SUBJECT || '<missing>')"
+          node -e "require('dotenv').config({ path: '.env.local' }); console.log('dotenv NEXT_PUBLIC_SUPABASE_URL:', process.env.NEXT_PUBLIC_SUPABASE_URL ? 'set' : 'missing')"
+          node -e "require('dotenv').config({ path: '.env.local' }); console.log('dotenv SUPABASE_SERVICE_ROLE_KEY:', process.env.SUPABASE_SERVICE_ROLE_KEY ? 'set' : 'missing')"
 
       - name: 🚀 Run scraper
         run: |

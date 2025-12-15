@@ -2,14 +2,12 @@
 
 import { useState } from "react";
 import { BellRing } from "lucide-react";
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from "@/utils/supabase/client";
 // 👇 상대 경로로 수정하여 안전하게 가져옵니다
 import { useLoginModal } from "../store/useLoginModal";
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// 👇 [변경] 공통 클라이언트 사용 (쿠키 공유됨)
+const supabase = createClient();
 
 export default function PushNotificationButton() {
     const [isSubscribed, setIsSubscribed] = useState(false);
@@ -84,8 +82,8 @@ export default function PushNotificationButton() {
             disabled={loading || isSubscribed}
             // 👇 이 부분(스타일)이 복구되었습니다!
             className={`fixed top-20 right-4 z-40 p-3 rounded-full shadow-lg transition-all active:scale-95 ${isSubscribed
-                    ? "bg-gray-100 text-gray-400 cursor-default"
-                    : "bg-white text-orange-500 hover:bg-orange-50 border border-orange-100 animate-in fade-in zoom-in"
+                ? "bg-gray-100 text-gray-400 cursor-default"
+                : "bg-white text-orange-500 hover:bg-orange-50 border border-orange-100 animate-in fade-in zoom-in"
                 }`}
         >
             <BellRing className={`w-6 h-6 ${isSubscribed ? "" : "animate-pulse"}`} />

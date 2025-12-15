@@ -52,8 +52,11 @@ export default function BookmarkButton({ courseId, initialIsBookmarked = false }
             }
         } catch (error) {
             console.error("찜 변경 실패:", error);
+            // 카카오 로그인의 경우 이메일이 없을 수 있음.
+            // 하지만 user.id는 반드시 존재하므로, RLS 정책만 잘 되어 있다면 문제없음.
+            // 만약 여기서 에러가 난다면 RLS 문제일 가능성이 높음.
             setIsBookmarked(!newStatus); // 에러나면 원상복구
-            alert("오류가 발생했습니다.");
+            alert(`오류가 발생했습니다.\n${error instanceof Error ? error.message : "알 수 없는 오류"}`);
         }
     };
 

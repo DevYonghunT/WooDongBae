@@ -1,10 +1,18 @@
 import webPush from 'web-push';
 
+const vapidSubject = process.env.VAPID_SUBJECT || 'mailto:actions@github.local';
+const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
+
+if (!vapidPublicKey || !vapidPrivateKey) {
+    throw new Error('VAPID 키가 설정되어 있지 않습니다. VAPID_PUBLIC/PRIVATE_KEY 환경 변수를 확인하세요.');
+}
+
 // VAPID 키 설정 (환경변수에서 가져옴)
 webPush.setVapidDetails(
-    process.env.VAPID_SUBJECT!,
-    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-    process.env.VAPID_PRIVATE_KEY!
+    vapidSubject,
+    vapidPublicKey,
+    vapidPrivateKey,
 );
 
 export async function sendPushNotification(

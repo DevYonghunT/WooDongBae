@@ -13,11 +13,15 @@ on:
         description: '특정 지역/기관만 실행하려면 입력 (예: 성남시)'
         required: false
         default: ''
+      mode:
+        description: 'full: 전체 스크래핑(Playwright) + API 동기화, api: API 동기화만 실행'
+        required: false
+        default: 'full'
 
 jobs:
   scrape-and-update:
     runs-on: ubuntu-latest
-    
+
     # 시간대 설정 (로그 시간 확인용)
     env:
       TZ: 'Asia/Seoul'
@@ -30,13 +34,25 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
+          cache: 'yarn'
+
+      - name: 🛠️ 실행 모드 설정
+        id: vars
+        run: |
+          MODE="${{ github.event.inputs.mode }}"
+          TARGET="${{ github.event.inputs.target }}"
+
+          echo "mode=${MODE:-full}" >> "$GITHUB_OUTPUT"
+          echo "target=${TARGET}" >> "$GITHUB_OUTPUT"
 
       - name: 📦 의존성 패키지 설치 (devDependencies 포함)
-        run: npm ci --include=dev
+        run: |
+          corepack enable
+          yarn install --frozen-lockfile
 
-      - name: 🎭 Playwright 브라우저 설치
-        run: npx playwright install --with-deps chromium
+      - name: 🎭 Playwright 브라우저 설치 (전체 스크래핑 모드에만 실행)
+        if: steps.vars.outputs.mode == 'full'
+        run: yarn playwright install --with-deps chromium
 
       - name: 🔐 환경 변수 파일 생성 (.env.local)
         env:
@@ -49,17 +65,21 @@ jobs:
           echo "SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY" >> .env.local
           echo "NEXT_PUBLIC_API_KEY=$NEXT_PUBLIC_API_KEY" >> .env.local
           echo "GEMINI_API_KEY=$GEMINI_API_KEY" >> .env.local
-          
-      - name: 🚀 스크래퍼 실행 (전체 또는 타겟)
-        env:
-          TARGET: ${{ github.event.inputs.target }}
-        run: |
-         TARGET="${{ github.event.inputs.target }}"
 
-          if [ -n "$TARGET" ]; then
-            echo "🎯 타겟 지정 모드: $TARGET"
-            npx tsx scrapers/main.ts --target="$TARGET"
+      - name: 🚀 스크래퍼 실행 (전체 또는 타겟)
+        run: |
+          MODE="${{ steps.vars.outputs.mode }}"
+          TARGET="${{ steps.vars.outputs.target }}"
+
+          if [ "$MODE" = "api" ]; then
+            echo "🌐 API 동기화 모드 실행"
+            yarn tsx scrapers/seoul-api.ts
           else
-            echo "🔄 전체 모드 실행"
-            npx tsx scrapers/main.ts
+            if [ -n "$TARGET" ]; then
+              echo "🎯 타겟 지정 모드: $TARGET"
+              yarn tsx scrapers/main.ts --target="$TARGET"
+            else
+              echo "🔄 전체 모드 실행"
+              yarn tsx scrapers/main.ts
+            fi
           fi

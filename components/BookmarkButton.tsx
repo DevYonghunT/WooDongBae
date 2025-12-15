@@ -2,13 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { Heart } from "lucide-react";
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from "@/utils/supabase/client";
 import { useLoginModal } from "@/store/useLoginModal";
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// 👇 [변경] 공통 클라이언트 사용 (쿠키 공유됨)
+const supabase = createClient();
 
 interface BookmarkButtonProps {
     courseId: number; // 또는 string (DB 타입에 맞춰주세요)
@@ -63,8 +61,8 @@ export default function BookmarkButton({ courseId, initialIsBookmarked = false }
         <button
             onClick={toggleBookmark}
             className={`p-2 rounded-full transition-all ${isBookmarked
-                    ? "text-red-500 bg-red-50 hover:bg-red-100"
-                    : "text-gray-400 bg-black/5 hover:bg-black/10 hover:text-red-400"
+                ? "text-red-500 bg-red-50 hover:bg-red-100"
+                : "text-gray-400 bg-black/5 hover:bg-black/10 hover:text-red-400"
                 }`}
         >
             <Heart className={`w-5 h-5 ${isBookmarked ? "fill-current" : ""}`} />

@@ -52,7 +52,6 @@ jobs:
           if [ -z "${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}" ]; then echo "secrets.NEXT_PUBLIC_SUPABASE_URL = EMPTY"; else echo "secrets.NEXT_PUBLIC_SUPABASE_URL = SET"; fi
           if [ -z "${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" ]; then echo "secrets.SUPABASE_SERVICE_ROLE_KEY = EMPTY"; else echo "secrets.SUPABASE_SERVICE_ROLE_KEY = SET"; fi
 
-
       - name: 🔐 Write .env.local
         shell: bash
         env:
@@ -64,6 +63,7 @@ jobs:
           VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
           VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+
         run: |
           # 1) .env.local은 항상 "덮어쓰기"로 생성 (기존 파일 영향 제거)
           rm -f .env.local

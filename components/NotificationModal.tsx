@@ -51,7 +51,7 @@ export default function NotificationModal({ isOpen, onClose, userId }: Notificat
 
             if (error) {
                 // 테이블이 없을 수도 있으니 에러 로그만 찍고 무시 (생략)
-                console.error("알림 fetch 실패:", error);
+                console.error("알림 fetch 실패:", error.message || JSON.stringify(error));
                 return;
             }
             if (data) setNotifications(data);

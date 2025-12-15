@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Bell, Heart, Trash2 } from "lucide-react";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import KeywordSection from "@/components/KeywordSection";
 
 export const dynamic = "force-dynamic";
 
@@ -128,32 +129,7 @@ export default async function MyPage() {
                     </div>
 
                     {/* 알림 키워드 관리 */}
-                    <div className="bg-white rounded-2xl p-6 shadow-sm border border-stone-100">
-                        <h2 className="text-xl font-bold text-stone-800 flex items-center gap-2 mb-6">
-                            <Bell className="w-5 h-5 text-orange-500" />
-                            등록한 알림 키워드
-                        </h2>
-
-                        <div className="space-y-3">
-                            {alerts?.length === 0 ? (
-                                <p className="text-stone-400 text-sm py-4">등록된 알림 키워드가 없습니다.</p>
-                            ) : (
-                                alerts?.map((alert: any) => (
-                                    <div key={alert.id} className="flex justify-between items-center p-3 bg-stone-50 rounded-lg">
-                                        <span className="font-medium text-stone-700">{alert.keyword}</span>
-                                        <form action={deleteKeyword.bind(null, alert.id)}>
-                                            <button className="text-stone-400 hover:text-red-500 p-2 transition-colors">
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
-                                        </form>
-                                    </div>
-                                ))
-                            )}
-                        </div>
-                        <p className="text-xs text-stone-400 mt-4 bg-stone-50 p-3 rounded-lg">
-                            💡 키워드를 등록해두면 새로운 강좌가 떴을 때 메일로 알려드립니다.
-                        </p>
-                    </div>
+                    <KeywordSection />
                 </div>
             </div>
         </div>

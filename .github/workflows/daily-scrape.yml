@@ -77,6 +77,10 @@ jobs:
             printf 'VAPID_PUBLIC_KEY=%s\n' "$NEXT_PUBLIC_VAPID_PUBLIC_KEY"
             printf 'VAPID_PRIVATE_KEY=%s\n' "$VAPID_PRIVATE_KEY"
             printf 'VAPID_SUBJECT=%s\n' "$SUBJECT_VALUE"
+            printf 'NEXT_PUBLIC_VAPID_SUBJECT=%s\n' "$SUBJECT_VALUE"
+            printf 'DEFAULT_VAPID_SUBJECT=%s\n' "${DEFAULT_VAPID_SUBJECT}"
+
+
           } > .env.local
 
       # ✅ 여기! (네가 몰랐던 “실행 step 전에 넣는” 디버그 step)

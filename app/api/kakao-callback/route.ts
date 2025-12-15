@@ -6,11 +6,14 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const code = searchParams.get("code");
 
+    // [수정] 동적 origin 사용
+    const origin = request.nextUrl.origin;
+
     // 환경변수 가져오기
     const KAKAO_CLIENT_ID = process.env.KAKAO_CLIENT_ID || "b6a8f2791cd23f7995b4fba26c649c20";
     const KAKAO_CLIENT_SECRET = process.env.KAKAO_CLIENT_SECRET || "XRvHGAT4u5uZ3mcZaj80m5v8ol0E8sG4";
-    const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https//www.woodongbae.xyz';
-    const REDIRECT_URI = `${SITE_URL}/api/kakao-callback`;
+    // const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https//www.woodongbae.xyz'; // Deprecated
+    const REDIRECT_URI = `${origin}/api/kakao-callback`;
 
     if (!code) return NextResponse.redirect(new URL('/', request.url));
 
@@ -62,7 +65,7 @@ export async function GET(request: NextRequest) {
         const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
             type: 'magiclink',
             email: fakeEmail,
-            options: { redirectTo: `${SITE_URL}/` }
+            options: { redirectTo: `${origin}/` } // [수정] origin 사용
         });
 
         if (linkError) throw linkError;
@@ -100,7 +103,7 @@ export async function GET(request: NextRequest) {
         }
 
         // ✅ 토큰을 쿠키에 굽기
-        const response = NextResponse.redirect(`${SITE_URL}/`); // 최종 목적지는 홈
+        const response = NextResponse.redirect(`${origin}/`); // 최종 목적지는 홈
 
         const supabase = createServerClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,

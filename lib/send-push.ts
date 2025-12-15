@@ -1,20 +1,21 @@
 import webPush from 'web-push';
 
-const rawVapidSubject = process.env.VAPID_SUBJECT || process.env.NEXT_PUBLIC_VAPID_SUBJECT;
-const vapidSubject = rawVapidSubject && rawVapidSubject.trim() !== ''
-    ? rawVapidSubject
-    : 'mailto:actions@github.local';
+const DEFAULT_VAPID_SUBJECT = 'mailto:notifications@woodongbae.local';
+
+const rawVapidSubject = (process.env.VAPID_SUBJECT ?? process.env.NEXT_PUBLIC_VAPID_SUBJECT ?? '').trim();
+const vapidSubject = rawVapidSubject
+    ? (rawVapidSubject.startsWith('mailto:') || rawVapidSubject.startsWith('http://') || rawVapidSubject.startsWith('https://')
+        ? rawVapidSubject
+        : `mailto:${rawVapidSubject}`)
+    : DEFAULT_VAPID_SUBJECT;
+
 const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
 
 if (!vapidPublicKey || !vapidPrivateKey) {
     throw new Error('VAPID 키가 설정되어 있지 않습니다. VAPID_PUBLIC/PRIVATE_KEY 환경 변수를 확인하세요.');
 }
-if (!vapidSubject) {
-    throw new Error('VAPID_SUBJECT가 비어 있습니다. 환경 변수 또는 기본 메일 주소를 확인하세요.');
-}
 
-// VAPID 키 설정 (환경변수에서 가져옴)
 webPush.setVapidDetails(
     vapidSubject,
     vapidPublicKey,

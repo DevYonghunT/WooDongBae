@@ -1,91 +1,91 @@
 name: Daily Course Scraper
 
 on:
-  # 1. 자동 실행 스케줄 (UTC 기준)
-  # 한국 시간 오전 4시 = UTC 19:00 (전날)
   schedule:
     - cron: '0 19 * * *'
-
-  # 2. 수동 실행 (GitHub 웹에서 버튼 클릭)
   workflow_dispatch:
     inputs:
-      target:
-        description: '특정 지역/기관만 실행하려면 입력 (예: 성남시)'
-        required: false
-        default: ''
       mode:
-        description: 'full: 전체 스크래핑(Playwright) + API 동기화, api: API 동기화만 실행'
+        description: 'full: Playwright + API / api: API only'
         required: false
         default: 'full'
+      target:
+        description: '특정 지역/기관 타겟 (선택)'
+        required: false
+        default: ''
 
 jobs:
-  scrape-and-update:
+  run-scrapers:
     runs-on: ubuntu-latest
-
-    # 시간대 설정 (로그 시간 확인용)
     env:
-      TZ: 'Asia/Seoul'
-
+      TZ: Asia/Seoul
+      DEFAULT_VAPID_SUBJECT: mailto:notifications@woodongbae.local
     steps:
-      - name: 📥 코드 체크아웃
+      - name: 📥 Checkout repository
         uses: actions/checkout@v4
 
-      - name: 🟢 Node.js 설정
+      - name: 🟢 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'yarn'
 
-      - name: 🛠️ 실행 모드 설정
-        id: vars
+      - name: 🛠️ Prepare runtime vars
+        id: opts
         run: |
           MODE="${{ github.event.inputs.mode }}"
           TARGET="${{ github.event.inputs.target }}"
-
           echo "mode=${MODE:-full}" >> "$GITHUB_OUTPUT"
           echo "target=${TARGET}" >> "$GITHUB_OUTPUT"
 
-      - name: 📦 의존성 패키지 설치 (devDependencies 포함)
+      - name: 📦 Install dependencies
         run: |
           corepack enable
           yarn install --frozen-lockfile
 
-      - name: 🎭 Playwright 브라우저 설치 (전체 스크래핑 모드에만 실행)
-        if: steps.vars.outputs.mode == 'full'
+      - name: 🎭 Install Playwright (full mode only)
+        if: steps.opts.outputs.mode == 'full'
         run: yarn playwright install --with-deps chromium
 
-      - name: 🔐 환경 변수 파일 생성 (.env.local)
+      - name: 🔐 Write .env.local
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           NEXT_PUBLIC_API_KEY: ${{ secrets.NEXT_PUBLIC_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
           NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${{ secrets.NEXT_PUBLIC_VAPID_PUBLIC_KEY }}
           VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
+          DEFAULT_VAPID_SUBJECT: ${{ env.DEFAULT_VAPID_SUBJECT }}
         run: |
+          : "${VAPID_SUBJECT:=}"
+          SUBJECT_VALUE=$(echo "${VAPID_SUBJECT}" | tr -d '\r' | xargs)
+          if [ -z "$SUBJECT_VALUE" ]; then
+            SUBJECT_VALUE="$DEFAULT_VAPID_SUBJECT"
+          fi
           echo "NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL" >> .env.local
           echo "SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY" >> .env.local
           echo "NEXT_PUBLIC_API_KEY=$NEXT_PUBLIC_API_KEY" >> .env.local
           echo "GEMINI_API_KEY=$GEMINI_API_KEY" >> .env.local
-          echo "VAPID_SUBJECT=${VAPID_SUBJECT:-mailto:actions@github.local}" >> .env.local
           echo "NEXT_PUBLIC_VAPID_PUBLIC_KEY=$NEXT_PUBLIC_VAPID_PUBLIC_KEY" >> .env.local
           echo "VAPID_PRIVATE_KEY=$VAPID_PRIVATE_KEY" >> .env.local
+          echo "VAPID_SUBJECT=$SUBJECT_VALUE" >> .env.local
 
-      - name: 🚀 스크래퍼 실행 (전체 또는 타겟)
+      - name: 🚀 Run scraper
         run: |
-          MODE="${{ steps.vars.outputs.mode }}"
-          TARGET="${{ steps.vars.outputs.target }}"
+          MODE="${{ steps.opts.outputs.mode }}"
+          TARGET="${{ steps.opts.outputs.target }}"
 
           if [ "$MODE" = "api" ]; then
-            echo "🌐 API 동기화 모드 실행"
+            echo "🌐 API 모드 실행"
             yarn tsx scrapers/seoul-api.ts
+            exit $?
+          fi
+
+          if [ -n "$TARGET" ]; then
+            echo "🎯 타겟 실행: $TARGET"
+            yarn tsx scrapers/main.ts --target="$TARGET"
           else
-            if [ -n "$TARGET" ]; then
-              echo "🎯 타겟 지정 모드: $TARGET"
-              yarn tsx scrapers/main.ts --target="$TARGET"
-            else
-              echo "🔄 전체 모드 실행"
-              yarn tsx scrapers/main.ts
-            fi
+            echo "🔄 전체 실행"
+            yarn tsx scrapers/main.ts
           fi

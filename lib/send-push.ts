@@ -1,6 +1,6 @@
 import webPush from 'web-push';
 
-const vapidSubject = process.env.VAPID_SUBJECT || 'mailto:actions@github.local';
+const vapidSubject = (process.env.VAPID_SUBJECT && process.env.VAPID_SUBJECT.trim() !== '') ? process.env.VAPID_SUBJECT : 'mailto:actions@github.local';
 const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
 

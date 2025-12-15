@@ -4,8 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url'; // [주석 해제] url 모듈 사용
 import { UniversalAiScraper } from './ai-scraper.ts';
 import { fetchAndSaveSeoulData } from './seoul-api.ts'; // [추가] 서울시 API 함수 임포트
-import { runAlertJob } from './alert-job.ts';
-import { runBookmarkAlertJob } from './bookmark-alert-job.ts'; // [추가]
+
 
 
 // 1. [수정] ES Module 환경에서 __dirname을 파일 기준으로 정확하게 설정
@@ -207,6 +206,12 @@ async function main() {
 
     console.log(`🚀 총 ${sitesToScrape.length}개 도서관 크롤링 시작...`);
 
+    // ✅ 스크래핑보다 먼저 서울시 API 동기화
+    console.log("\n------------------------------------------------");
+    console.log("🚀 [1/3] 서울시 강좌 API 동기화 (스크래핑 전에 실행)");
+    await fetchAndSaveSeoulData();
+    console.log("------------------------------------------------\n");
+
     const scraper = new UniversalAiScraper();
 
     for (const site of sitesToScrape) {
@@ -277,18 +282,18 @@ async function main() {
         await new Promise(resolve => setTimeout(resolve, 2000));
     }
 
-    // [추가] 모든 크롤링이 끝난 후 서울시 API 호출 실행
-    console.log("\n------------------------------------------------");
-    await fetchAndSaveSeoulData();
-    console.log("------------------------------------------------\n");
+
 
     console.log("\n🎉 모든 크롤링 및 API 동기화 작업이 완료되었습니다!");
 
     console.log("\n------------------------------------------------");
-    // 1. 키워드 & 전체 알림 실행
-    await runAlertJob();
+    console.log("\n------------------------------------------------");
+    console.log("🔔 [3/3] 알림 발송 시작...");
 
-    // 2. [추가] 찜 리마인더 알림 실행
+    const { runAlertJob } = await import("./alert-job.ts");
+    const { runBookmarkAlertJob } = await import("./bookmark-alert-job.ts");
+
+    await runAlertJob();
     await runBookmarkAlertJob();
     console.log("------------------------------------------------\n");
 

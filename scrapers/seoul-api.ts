@@ -158,3 +158,18 @@ export async function fetchAndSaveSeoulData() {
         console.error("❌ [서울시 API] 치명적 오류:", error);
     }
 }
+
+// ✅ 이 파일을 직접 실행(tsx scrapers/seoul-api.ts)한 경우에만 자동 실행
+const isDirectRun = process.argv[1] && path.resolve(process.argv[1]) === path.resolve(__filename);
+
+if (isDirectRun) {
+    fetchAndSaveSeoulData()
+        .then(() => {
+            console.log("✅ [서울시 API] 단독 실행 완료");
+            process.exit(0);
+        })
+        .catch((e) => {
+            console.error("❌ [서울시 API] 단독 실행 실패:", e);
+            process.exit(1);
+        });
+}

@@ -100,6 +100,8 @@ jobs:
             printf 'DEFAULT_VAPID_SUBJECT=%s\n' "${DEFAULT_VAPID_SUBJECT}"
             printf 'VAPID_SUBJECT=%s\n' "$SUBJECT_VALUE"
             printf 'NEXT_PUBLIC_VAPID_SUBJECT=%s\n' "$SUBJECT_VALUE"
+            printf 'RESEND_API_KEY=%s\n' "$RESEND_API_KEY"
+
           } > .env.local
 
       # ✅ 여기! (네가 몰랐던 “실행 step 전에 넣는” 디버그 step)

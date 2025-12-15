@@ -20,7 +20,11 @@ export async function GET(request: Request) {
                     setAll(cookiesToSet) {
                         try {
                             cookiesToSet.forEach(({ name, value, options }) =>
-                                cookieStore.set(name, value, options)
+                                cookieStore.set(name, value, {
+                                    ...options,
+                                    sameSite: 'none',
+                                    secure: true,
+                                })
                             );
                         } catch {
                             // 서버 컴포넌트 에러 무시

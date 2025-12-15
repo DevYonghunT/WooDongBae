@@ -18,4 +18,5 @@ export interface Course {
     time: string;        // applyStartTm (시간)
     capacity: number;    // onApplyNum (정원)
     contact: string;     // organTelNo (전화번호)
+    isBookmarked?: boolean; // [추가] 찜 여부
 }

@@ -92,7 +92,7 @@ function mapRawToCourse(row: any): Course {
     const target = row.target || raw.eduTarget || raw.targetNm || "전체";
 
     let statusStr = row.status || raw.lectureStatusNm || raw.status || '-';
-    
+
     // Status normalization
     if (STATUS_MAP[statusStr]) {
         statusStr = STATUS_MAP[statusStr];
@@ -128,7 +128,7 @@ export async function getFilterMetadata(): Promise<FilterMetadata[]> {
         let hasMore = true;
         let page = 0;
         const allData: FilterMetadata[] = [];
-        
+
         // Supabase에서 distinct 지원이 제한적이므로, 컬럼만 가져와서 JS Set으로 중복 제거
         // 메모리 효율을 위해 필요한 컬럼만 정확히 선택
         while (hasMore) {
@@ -139,12 +139,12 @@ export async function getFilterMetadata(): Promise<FilterMetadata[]> {
                 .range(page * batchSize, (page + 1) * batchSize - 1);
 
             if (error) throw error;
-            
+
             if (data) {
                 // 타입 단언: Supabase 반환값이 Partial<T> 일 수 있으므로
                 const typedData = data as unknown as FilterMetadata[];
                 allData.push(...typedData);
-                
+
                 if (data.length < batchSize) {
                     hasMore = false;
                 } else {
@@ -158,7 +158,7 @@ export async function getFilterMetadata(): Promise<FilterMetadata[]> {
         // 중복 제거
         const uniqueSet = new Set<string>();
         const uniqueData: FilterMetadata[] = [];
-        
+
         for (const item of allData) {
             const key = `${item.region}|${item.institution}`;
             if (!uniqueSet.has(key)) {
@@ -180,7 +180,8 @@ export async function getFilterMetadata(): Promise<FilterMetadata[]> {
 export async function getPaginatedCourses(
     page: number,
     limit: number,
-    filters: CourseFilterParams
+    filters: CourseFilterParams,
+    userId?: string // [추가] 유저 ID를 받아서 찜 여부 확인
 ): Promise<Course[]> {
     try {
         let query = supabase.from('courses').select(COURSE_COLUMNS);
@@ -224,8 +225,31 @@ export async function getPaginatedCourses(
             .range(from, to);
 
         if (error) throw error;
+        if (!data) return [];
 
-        return (data || []).map(mapRawToCourse);
+        let courses = data.map(mapRawToCourse);
+
+        // [핵심] 유저 ID가 있다면 찜 목록을 가져와서 매핑
+        if (userId) {
+            const courseIds = courses.map(c => c.id);
+            if (courseIds.length > 0) {
+                const { data: bookmarks, error: bookmarkError } = await supabase
+                    .from('bookmarks')
+                    .select('course_id')
+                    .eq('user_id', userId)
+                    .in('course_id', courseIds);
+
+                if (!bookmarkError && bookmarks) {
+                    const bookmarkedSet = new Set(bookmarks.map(b => b.course_id));
+                    courses = courses.map(c => ({
+                        ...c,
+                        isBookmarked: bookmarkedSet.has(Number(c.id)) // ID 타입 주의 (DB는 int일 확률 높음)
+                    }));
+                }
+            }
+        }
+
+        return courses;
 
     } catch (error) {
         console.error('Failed to fetch paginated courses:', error);

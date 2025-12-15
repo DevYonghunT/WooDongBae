@@ -50,13 +50,19 @@ export default function CourseExplorer() {
         setIsLoading(true);
         setError(null);
         try {
+            // [추가] 유저 정보 가져오기 (비동기)
+            // 컴포넌트 마운트 시점에 한 번만 가져와서 state로 관리할 수도 있지만,
+            // 여기서는 요청 시점의 정확성을 위해 직접 호출
+            const { data: { session } } = await import("@/utils/supabase/client").then(m => m.createClient().auth.getSession());
+            const userId = session?.user?.id;
+
             const newCourses = await getPaginatedCourses(pageNum, ITEMS_PER_PAGE, {
                 majorRegion: selectedMajorRegion,
                 minorRegion: selectedMinorRegion,
                 organ: selectedOrgan,
                 status: selectedStatus,
                 search: searchTerm
-            });
+            }, userId); // userId 전달
 
             if (isReset) {
                 setCourses(newCourses);

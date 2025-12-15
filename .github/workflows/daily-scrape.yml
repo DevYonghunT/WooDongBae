@@ -63,6 +63,7 @@ jobs:
           NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${{ secrets.NEXT_PUBLIC_VAPID_PUBLIC_KEY }}
           VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
           VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
         run: |
           # 1) .env.local은 항상 "덮어쓰기"로 생성 (기존 파일 영향 제거)
           rm -f .env.local

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Search, Menu, X, Heart } from "lucide-react";
 import { useLoginModal } from "../store/useLoginModal";
 import { createClient } from "@/utils/supabase/client";
@@ -48,8 +49,14 @@ export default function Header() {
                 {/* 로고 */}
                 <div className="flex items-center gap-2">
                     <Link href="/" className="flex items-center gap-2" onClick={() => setIsMenuOpen(false)}>
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-500 text-white">
-                            <span className="font-bold">우</span>
+                        <div className="relative h-8 w-8 overflow-hidden rounded-lg">
+                            <Image
+                                src="/icon.png"
+                                alt="우동배"
+                                fill
+                                sizes="32px"
+                                priority
+                            />
                         </div>
                         <span className="text-xl font-bold text-stone-900">우동배</span>
                     </Link>

@@ -29,11 +29,11 @@ export default function CourseCard({ course, viewMode = 'grid' }: CourseCardProp
                     {/* 이미지 섹션 */}
                     <div className="relative h-48 md:h-auto w-full md:w-64 flex-shrink-0 bg-gray-100 overflow-hidden">
                         <Image
-                            src={imgSrc}
-                            alt={course.title}
+                            src="/favicon-thumbnail.png"
+                            alt="강좌 썸네일"
                             fill
-                            className="object-cover group-hover:scale-105 transition-transform duration-500"
-                            onError={() => setImgSrc(fallbackImage)}
+                            className="object-cover hover:scale-105 transition-transform duration-500"
+                            priority
                         />
 
                         {/* [배치 변경] 상태 배지 -> 좌측 상단 */}
@@ -128,11 +128,11 @@ export default function CourseCard({ course, viewMode = 'grid' }: CourseCardProp
                 {/* 이미지 섹션 */}
                 <div className="relative h-48 w-full overflow-hidden bg-gray-100">
                     <Image
-                        src={imgSrc}
-                        alt={course.title}
+                        src="/favicon-thumbnail.png"
+                        alt="강좌 썸네일"
                         fill
-                        className="object-cover group-hover:scale-105 transition-transform duration-500"
-                        onError={() => setImgSrc(fallbackImage)}
+                        className="object-cover hover:scale-105 transition-transform duration-500"
+                        priority
                     />
 
                     {/* [배치 변경] 상태 배지 -> 좌측 상단 */}

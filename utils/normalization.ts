@@ -26,15 +26,23 @@ export function normalizeRegionAndInstitution(rawRegion: string, rawInstitution:
 
     for (const candidate of candidates) {
         const noSpace = candidate.replace(/\s+/g, "");
-        // ES5 호환: Named capture 없이 처리 + 서울 자치구 화이트리스트 확인
-        const seoulMatch = noSpace.match(/^(?:서울특별시|서울시)?([가-힣]+구)(.*)$/);
 
-        if (seoulMatch) {
-            const district = seoulMatch[1];
-            const restRaw = seoulMatch[2] || "";
+        // 1. 서울 접두어 제거 (먼저 제거해서 greedy match 방지)
+        // "서울특별시서초구..." -> "서초구..."
+        const cleanName = noSpace.replace(/^(서울특별시|서울시|서울)/, "");
+
+        // 2. 구 단위 추출 (이제 맨 앞에 구가 와야 함)
+        const match = cleanName.match(/^([가-힣]+구)(.*)$/);
+
+        if (match) {
+            const district = match[1];
+            const restRaw = match[2] || "";
 
             if (SEOUL_DISTRICTS.has(district)) {
                 let institution = institutionSource;
+
+                // 기관명이 "서울특별시서초구반포도서관" 처럼 전체를 포함하고 있었다면,
+                // 남은 뒷부분("반포도서관")을 기관명으로 사용
                 if (!institution || institution === regionSource || institution === candidate) {
                     institution = restRaw.trim() || institutionSource || placeSource;
                 }
@@ -46,7 +54,6 @@ export function normalizeRegionAndInstitution(rawRegion: string, rawInstitution:
             }
         }
     }
-
     return {
         region: regionSource || "서울특별시",
         institution: refineInstitutionName(institutionSource || placeSource || "기관 미정"),

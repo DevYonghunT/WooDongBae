@@ -210,6 +210,73 @@ export default function CourseExplorer() {
     }, [filterData, selectedMajorRegion, selectedMinorRegion]);
 
 
+    // ─── [추가] 기관명 포맷팅 헬퍼 ───
+    const formatOrganLabel = (organ: string) => {
+        if (organ === "전체 기관") return organ;
+        if (selectedMajorRegion === "전체 지역") return organ;
+
+        let formatted = organ.trim();
+
+        // 공백 무시하고 접두어 제거하는 함수 (e.g. "서울 시" -> "서울시" 매칭)
+        const removePrefix = (text: string, prefix: string) => {
+            // 접두어의 각 글자 사이에 공백(\s*) 허용하도록 정규식 생성
+            const escaped = prefix.split('').map(c => c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('\\s*');
+            // 접두어 자체 앞뒤로도 공백 허용
+            const regex = new RegExp(`^\\s*${escaped}\\s*`);
+            return text.replace(regex, "");
+        };
+
+        if (selectedMajorRegion === "서울특별시") {
+            // 1) 서울 접두어 제거
+            const seoulPrefixes = ["서울특별시", "서울시", "서울"];
+            for (const p of seoulPrefixes) {
+                if (removePrefix(formatted, p) !== formatted) {
+                    formatted = removePrefix(formatted, p);
+                    break; // 가장 긴 것부터 매칭하거나 순서대로 하나만 제거
+                }
+            }
+            // 2) 구 제거 (전체가 아닐 때)
+            if (selectedMinorRegion !== "전체") {
+                formatted = removePrefix(formatted, selectedMinorRegion);
+            }
+        } else {
+            // 1) 광역 단위 + 지역명 결합 제거 시도
+            // 광역 단위 목록
+            const provinces = [
+                "경기도", "강원도", "충청북도", "충청남도", "전라북도", "전라남도",
+                "경상북도", "경상남도", "제주특별자치도", "세종특별자치시",
+                "부산광역시", "대구광역시", "인천광역시", "광주광역시", "대전광역시", "울산광역시"
+            ];
+
+            let removedMajor = false;
+
+            // 1-1) "광역 + 지역" 결합 형태 확인 (예: "경기도" + "하남시")
+            for (const prov of provinces) {
+                const combo = prov + selectedMajorRegion;
+                if (removePrefix(formatted, combo) !== formatted) {
+                    formatted = removePrefix(formatted, combo);
+                    removedMajor = true;
+                    break;
+                }
+            }
+
+            // 1-2) 결합형이 아니면 지역명 단독 제거 시도 (예: "하남시어린이회관")
+            if (!removedMajor) {
+                if (removePrefix(formatted, selectedMajorRegion) !== formatted) {
+                    formatted = removePrefix(formatted, selectedMajorRegion);
+                }
+            }
+
+            // 2) 소분류 제거
+            if (selectedMinorRegion !== "전체") {
+                formatted = removePrefix(formatted, selectedMinorRegion);
+            }
+        }
+
+        // 3) 빈 문자열이면 원래 값 반환, 아니면 정리된 값 반환
+        return formatted.trim() === "" ? organ : formatted.trim();
+    };
+
     // 핸들러 함수들
     const handleReset = () => {
         setSelectedMajorRegion("전체 지역");
@@ -271,7 +338,7 @@ export default function CourseExplorer() {
                         <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"><Building2 className="h-5 w-5" /></div>
                         <select className="w-full h-12 pl-10 pr-8 bg-gray-50 border border-gray-200 rounded-xl text-gray-700 font-medium outline-none appearance-none cursor-pointer text-sm truncate"
                             value={selectedOrgan} onChange={(e) => setSelectedOrgan(e.target.value)}>
-                            {organs.map(o => <option key={o} value={o}>{o}</option>)}
+                            {organs.map(o => <option key={o} value={o}>{formatOrganLabel(o)}</option>)}
                         </select>
                     </div>
 

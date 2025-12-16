@@ -1,6 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 import { Course } from "@/types/course";
 
+import { normalizeRegionAndInstitution, refineInstitutionName } from "@/utils/normalization";
+
 // [설정 1] 환경 변수 가드
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -29,15 +31,6 @@ export interface CourseFilterParams {
     organ: string;
     status: string;
     search: string;
-}
-
-// [설정 3] 기관명 정제 함수
-function refineInstitutionName(rawName: string): string {
-    const name = rawName.trim();
-    if (name.includes("성동광진")) return "성동광진교육지원청";
-    if (name === "학생체육관") return "서울특별시교육청학생체육관";
-    if (name === "구리시꿈꾸는공작소") return "구리시인창도서관";
-    return name;
 }
 
 // [설정 4] 키워드별 이미지 매핑
@@ -88,8 +81,11 @@ function mapRawToCourse(row: any): Course {
     const raw = row.raw_data || {};
     const title = row.title || raw.lectureNm || raw.title || "제목 없음";
     const category = row.category || raw.cateNm || raw.category || "기타";
-    const institution = refineInstitutionName(row.institution || raw.organNm || raw.institution || "기관 미정");
+    const rawInstitution = row.institution || raw.organNm || raw.institution || "기관 미정";
     const target = row.target || raw.eduTarget || raw.targetNm || "전체";
+    const rawRegion = row.region || raw.sigunguNm || raw.region || "";
+    const rawPlace = row.place || raw.place || "";
+    const { region, institution } = normalizeRegionAndInstitution(rawRegion, rawInstitution, rawPlace);
 
     let statusStr = row.status || raw.lectureStatusNm || raw.status || '-';
 
@@ -115,7 +111,7 @@ function mapRawToCourse(row: any): Course {
     return {
         id: row.id,
         title, category, target, status: statusStr, imageUrl, dDay: row.d_day || "", institution,
-        price: row.price || "무료", region: row.region || "서울시", place: row.place || "장소 미정",
+        price: row.price || "무료", region: region || "서울시", place: rawPlace || institution || "장소 미정",
         courseDate: row.course_date || "", applyDate: row.apply_date || "", time: row.time || "",
         capacity: Number(row.capacity || 0), contact: row.contact || "", link
     };
@@ -143,7 +139,10 @@ export async function getFilterMetadata(): Promise<FilterMetadata[]> {
             if (data) {
                 // 타입 단언: Supabase 반환값이 Partial<T> 일 수 있으므로
                 const typedData = data as unknown as FilterMetadata[];
-                allData.push(...typedData);
+                const normalized = typedData.map(item =>
+                    normalizeRegionAndInstitution(item.region, item.institution)
+                );
+                allData.push(...normalized);
 
                 if (data.length < batchSize) {
                     hasMore = false;
@@ -189,17 +188,20 @@ export async function getPaginatedCourses(
         if (filters.majorRegion !== "전체 지역") {
             if (filters.majorRegion === "서울특별시") {
                 if (filters.minorRegion !== "전체") {
-                    query = query.eq('region', filters.minorRegion);
+                    const compactMinor = filters.minorRegion.replace(/\s+/g, '');
+                    query = query.ilike('region', `%${compactMinor}%`);
                 } else {
                     query = query.or('region.ilike.%구,region.ilike.%서울%');
                 }
             } else {
-                query = query.eq('region', filters.majorRegion);
+                const compactMajor = filters.majorRegion.replace(/\s+/g, '');
+                query = query.ilike('region', `%${compactMajor}%`);
             }
         }
 
         if (filters.organ !== "전체 기관") {
-            query = query.eq('institution', filters.organ);
+            const compactOrgan = filters.organ.replace(/\s+/g, '');
+            query = query.ilike('institution', `%${compactOrgan}%`);
         }
 
         if (filters.status !== "전체 상태") {

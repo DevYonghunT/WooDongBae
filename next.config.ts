@@ -4,7 +4,7 @@ import { createRequire } from "module";
 const require = createRequire(import.meta.url);
 const withPWA = require("next-pwa")({
   dest: "public",
-  disable: process.env.NODE_ENV === "development",
+  disable: false, // [수정] 개발 모드에서도 PWA/SW 활성화 (알림 테스트 위해)
   importScripts: ["/custom-sw.js"],
 });
 

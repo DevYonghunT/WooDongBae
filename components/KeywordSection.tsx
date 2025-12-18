@@ -5,7 +5,7 @@ import { createClient } from "@/utils/supabase/client";
 import { Trash2, AlertCircle } from "lucide-react";
 
 interface Keyword {
-    id: string;
+    id: string; // Assuming 'keywords' table has an ID
     word: string;
 }
 

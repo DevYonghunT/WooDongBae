@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { X, Bell, Trash2, Calendar, FolderOpen } from "lucide-react";
+import { X, Bell, Trash2, Calendar, FolderOpen, BellRing } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
@@ -28,15 +28,93 @@ interface NotificationModalProps {
 export default function NotificationModal({ isOpen, onClose, userId }: NotificationModalProps) {
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [loading, setLoading] = useState(false);
+    const [isSubscribed, setIsSubscribed] = useState(false);
     const supabase = createClient();
     const { openModal } = useLoginModal();
 
-    // 1. 알림 목록 불러오기
+    // 1. 알림 목록 불러오기 & 구독 상태 확인
     useEffect(() => {
         if (isOpen && userId) {
             fetchNotifications();
+            checkSubscription();
         }
     }, [isOpen, userId]);
+
+    // 구독 상태 확인
+    const checkSubscription = async () => {
+        if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
+
+        try {
+            const registration = await navigator.serviceWorker.ready;
+            const sub = await registration.pushManager.getSubscription();
+            setIsSubscribed(!!sub);
+        } catch (e) {
+            console.error("구독 상태 확인 실패:", e);
+        }
+    };
+
+    // 알림 구독 핸들러
+    const handleSubscribe = async () => {
+        if (!userId) {
+            alert("로그인이 필요합니다.");
+            return;
+        }
+        if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+            alert("이 브라우저는 푸시 알림을 지원하지 않습니다.");
+            return;
+        }
+
+        const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+        if (!vapidKey) {
+            alert("VAPID 공개키가 설정되지 않았습니다. 관리자에게 문의하세요.");
+            console.error("Missing NEXT_PUBLIC_VAPID_PUBLIC_KEY");
+            return;
+        }
+
+        try {
+            const permission = await Notification.requestPermission();
+            if (permission !== "granted") {
+                alert(`알림 권한이 거부되었습니다. (상태: ${permission})`);
+                return;
+            }
+
+            // 디버깅: SW 등록 대기
+            console.log("Waiting for SW ready...");
+            const registration = await navigator.serviceWorker.ready;
+            console.log("SW Ready:", registration);
+
+            if (!registration.active) {
+                alert("서비스 워커가 활성화되지 않았습니다. 페이지를 새로고침 해보세요.");
+                return;
+            }
+
+            const sub = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: vapidKey
+            });
+
+            console.log("Subscription:", sub);
+
+            // 서버에 저장
+            const { error } = await supabase.from('push_subscriptions').upsert({
+                user_id: userId,
+                endpoint: sub.endpoint,
+                keys: sub.toJSON().keys
+            });
+
+            if (error) {
+                console.error("DB 저장 실패:", error);
+                alert(`구독 정보 저장 실패: ${error.message}`);
+                throw error;
+            }
+
+            setIsSubscribed(true);
+            alert("푸시 알림이 활성화되었습니다! 🍊");
+        } catch (e: any) {
+            console.error(e);
+            alert(`알림 설정 중 오류가 발생했습니다: ${e.message || e}`);
+        }
+    };
 
     const fetchNotifications = async () => {
         if (!userId) return;
@@ -107,20 +185,38 @@ export default function NotificationModal({ isOpen, onClose, userId }: Notificat
                         </span>
                     </div>
                     <div className="flex items-center gap-3">
-                        <button
-                            onClick={handleMarkAllRead}
-                            className="text-xs text-gray-500 hover:text-orange-600 underline underline-offset-2"
-                        >
-                            모두 읽음
-                        </button>
                         <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
                             <X className="w-5 h-5" />
                         </button>
                     </div>
                 </div>
 
+                {/* 알림 권한/설정 바 */}
+                {!isSubscribed && (
+                    <div className="px-5 py-3 bg-orange-50 flex items-center justify-between">
+                        <span className="text-xs text-orange-700 font-medium">실시간 푸시 알림 받기</span>
+                        <button
+                            onClick={handleSubscribe}
+                            className="bg-orange-500 hover:bg-orange-600 text-white text-xs px-3 py-1.5 rounded-lg flex items-center gap-1 transition-colors"
+                        >
+                            <BellRing className="w-3 h-3" />
+                            알림 켜기
+                        </button>
+                    </div>
+                )}
+
+                {/* 목록 Header Actions */}
+                <div className="px-5 py-2 flex justify-end">
+                    <button
+                        onClick={handleMarkAllRead}
+                        className="text-xs text-gray-500 hover:text-orange-600 underline underline-offset-2"
+                    >
+                        모두 읽음
+                    </button>
+                </div>
+
                 {/* 목록 */}
-                <div className="max-h-[70vh] overflow-y-auto p-2 space-y-2 bg-gray-50/30">
+                <div className="max-h-[60vh] overflow-y-auto p-2 space-y-2 bg-gray-50/30">
                     {loading ? (
                         <div className="py-10 text-center text-gray-400">
                             <span className="loading loading-spinner loading-sm"></span> 불러오는 중...

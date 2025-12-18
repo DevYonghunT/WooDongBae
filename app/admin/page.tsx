@@ -1,30 +1,14 @@
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { createClient } from "@/utils/supabase/server";
 
 export default async function AdminPage() {
-    // 👇 [수정] await cookies() 적용
-    const cookieStore = await cookies();
-
-    const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-            cookies: {
-                getAll() { return cookieStore.getAll() },
-                setAll(cookiesToSet) {
-                    try {
-                        cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
-                    } catch { }
-                },
-            },
-        }
-    );
+    const supabase = await createClient();
 
     const { count: courseCount } = await supabase.from('courses').select('*', { count: 'exact', head: true });
-    const { count: alertCount } = await supabase.from('keyword_alerts').select('*', { count: 'exact', head: true });
+    // [수정] keyword_alerts -> keywords
+    const { count: alertCount } = await supabase.from('keywords').select('*', { count: 'exact', head: true });
 
     const { data: recentAlerts } = await supabase
-        .from('keyword_alerts')
+        .from('keywords') // [수정] keywords 테이블 사용
         .select('*')
         .order('created_at', { ascending: false })
         .limit(5);
@@ -58,7 +42,7 @@ export default async function AdminPage() {
                         <thead>
                             <tr className="border-b border-stone-100 text-stone-400 text-sm">
                                 <th className="pb-3">키워드</th>
-                                <th className="pb-3">이메일</th>
+                                <th className="pb-3">사용자 ID (User ID)</th> {/* [수정] 이메일 -> 사용자 ID */}
                                 <th className="pb-3">등록일시</th>
                             </tr>
                         </thead>
@@ -66,8 +50,8 @@ export default async function AdminPage() {
                             {/* 👇 [수정] 타입 에러 해결을 위해 any 타입 명시 */}
                             {recentAlerts?.map((alert: any) => (
                                 <tr key={alert.id} className="border-b border-stone-50 last:border-0 hover:bg-stone-50">
-                                    <td className="py-3 font-medium">{alert.keyword}</td>
-                                    <td className="py-3 text-stone-500">{alert.email}</td>
+                                    <td className="py-3 font-medium">{alert.word}</td> {/* [수정] keyword -> word */}
+                                    <td className="py-3 text-stone-500 text-xs font-mono">{alert.user_id}</td> {/* [수정] email -> user_id */}
                                     <td className="py-3 text-stone-400 text-sm">
                                         {new Date(alert.created_at).toLocaleDateString()}
                                     </td>

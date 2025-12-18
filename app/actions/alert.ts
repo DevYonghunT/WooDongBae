@@ -1,31 +1,30 @@
 "use server";
 
-import { createClient } from "@supabase/supabase-js";
-
-// 서버 액션용 Supabase 클라이언트 (관리자 권한)
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { createClient } from "@/utils/supabase/server";
 
 export async function subscribeAlert(formData: FormData) {
-    const email = formData.get("email") as string;
-    const keyword = formData.get("keyword") as string;
+    const supabase = await createClient(); // 서버 컴포넌트용 클라이언트 (쿠키 자동 처리)
 
-    if (!email || !keyword) {
-        return { success: false, message: "이메일과 키워드를 입력해주세요." };
+    // 1. 로그인 확인
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        return { success: false, message: "로그인이 필요한 서비스입니다." };
     }
 
-    // 간단한 이메일 검증
-    if (!email.includes("@")) {
-        return { success: false, message: "올바른 이메일 형식이 아닙니다." };
+    const keyword = formData.get("keyword") as string;
+
+    if (!keyword) {
+        return { success: false, message: "키워드를 입력해주세요." };
     }
 
     try {
-        // DB 저장
+        // 2. keywords 테이블에 저장 (user_id 기반)
         const { error } = await supabase
-            .from("keyword_alerts")
-            .insert({ email, keyword });
+            .from("keywords")
+            .insert({
+                user_id: user.id,
+                word: keyword
+            });
 
         if (error) throw error;
 

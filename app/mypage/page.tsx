@@ -1,36 +1,13 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Bell, Heart, Trash2 } from "lucide-react";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { Heart } from "lucide-react";
+import { createClient } from "@/utils/supabase/server";
 import KeywordSection from "@/components/KeywordSection";
 
 export const dynamic = "force-dynamic";
 
 export default async function MyPage() {
-    // 👇 [수정] Next.js 15에서는 cookies()가 Promise입니다. await 필수!
-    const cookieStore = await cookies();
-
-    const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-            cookies: {
-                getAll() {
-                    return cookieStore.getAll();
-                },
-                setAll(cookiesToSet) {
-                    try {
-                        cookiesToSet.forEach(({ name, value, options }) =>
-                            cookieStore.set(name, value, options)
-                        );
-                    } catch {
-                        // 서버 컴포넌트에서 쿠키 설정 무시 (미들웨어에서 처리됨)
-                    }
-                },
-            },
-        }
-    );
+    const supabase = await createClient();
 
     // 1. 로그인 확인
     const { data: { user } } = await supabase.auth.getUser();
@@ -44,35 +21,9 @@ export default async function MyPage() {
         .select("*, courses(*)")
         .eq("user_id", user.id);
 
-    // 3. 알림 키워드 가져오기
-    const { data: alerts } = await supabase
-        .from("keyword_alerts")
-        .select("*")
-        .eq("email", user.email || "");
-
     // [Debug] 데이터 확인용 로그
     console.log("[MyPage] User ID:", user.id);
     console.log("[MyPage] Bookmarks Count:", bookmarks?.length);
-
-    // 4. 삭제 액션
-    async function deleteKeyword(id: number) {
-        "use server";
-        const cookieStore = await cookies(); // 여기도 await 추가
-        const sb = createServerClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-            {
-                cookies: {
-                    getAll() { return cookieStore.getAll() },
-                    setAll(cookiesToSet) {
-                        cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
-                    }
-                }
-            }
-        );
-        await sb.from("keyword_alerts").delete().eq("id", id);
-        redirect("/mypage");
-    }
 
     return (
         <div className="min-h-screen bg-stone-50 py-12 px-4 sm:px-6 lg:px-8">

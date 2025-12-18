@@ -31,3 +31,42 @@ NEXT_PUBLIC_API_URL=https://apis.data.go.kr/7010000/everlearning
 NEXT_PUBLIC_KAKAO_MAP_KEY=...
 GEMINI_API_KEY=... (scrapers/.env 에도 필요)
 7. 향후 개발 계획 (To-Do)목록형/카드형 보기 전환 기능: 현재 카드형만 있음. 사용자가 선택 가능하도록 토글 버튼 구현 예정.자동화: GitHub Actions를 이용해 scrapers/main.ts를 매일 새벽 자동 실행.개인화: (장기 목표) 로컬 스토리지 기반 '찜하기' 기능.🤖 새로운 AI에게 전달할 프롬프트새로운 채팅창에서 시작할 때 아래 문구를 같이 입력하세요."위 내용은 내가 지금까지 개발한 '우동배' 서비스의 전체 명세서와 코드 현황이야. 이 내용을 바탕으로 이어서 개발을 진행하고 싶어. 현재 상태를 파악하고 다음 작업을 도와줘."
+
+
+
+
+🕹️ 사용 방법 (터미널 명령어)
+이제 터미널에서 아래와 같이 원하는 범위나 대상을 지정해서 실행할 수 있습니다.
+
+1. 앞에서 2개만 테스트하고 싶을 때 (--end)
+
+Bash
+
+npx ts-node scrapers/main.ts --end=2
+(0번 인덱스부터 2번 인덱스 전까지 실행)
+
+2. 중간부터 끝까지 실행하고 싶을 때 (--start)
+
+Bash
+
+npx ts-node scrapers/main.ts --start=5
+(5번 인덱스부터 끝까지 실행)
+
+3. 특정 범위 지정 (--start, --end)
+
+Bash
+
+npx ts-node scrapers/main.ts --start=3 --end=5
+(3번, 4번 도서관만 실행)
+
+4. 특정 도서관 이름으로 콕 집어서 실행 (--target) ⭐ (강력 추천)
+
+Bash
+
+npx ts-node scrapers/main.ts --target="성남시"
+(이름이나 지역에 "성남시"가 들어가는 모든 사이트만 실행)
+
+이 기능을 활용하면 테스트 시간을 획기적으로 줄일 수 있습니다! 바로 적용해 보세요.
+
+
+## 749564353300-os41n4l5k4cj23ugkp39jflfe26tpj52.apps.googleusercontent.com

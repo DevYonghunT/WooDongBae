@@ -1,5 +1,5 @@
 
-import { normalizeRegionAndInstitution } from './utils/normalization.ts';
+import { normalizeRegionAndInstitution } from './utils/normalization';
 
 const testCases = [
     { region: "서울특별시", institution: "서울특별시서초구반포도서관" },

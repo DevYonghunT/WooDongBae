@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Noto_Sans_KR } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
@@ -6,9 +6,8 @@ import Script from "next/script";
 import ScrollToTopButton from "@/components/ScrollToTopButton";
 import FeedbackWidget from "@/components/FeedbackWidget";
 import Header from "@/components/Header";
-import PushNotificationButton from "@/components/PushNotificationButton"; // 👈 [1. 추가] 임포트
+import PushNotificationButton from "@/components/PushNotificationButton";
 import LoginModal from "@/components/LoginModal";
-
 
 const notoSansKr = Noto_Sans_KR({
   subsets: ["latin"],
@@ -20,17 +19,18 @@ export const metadata: Metadata = {
   title: "우동배 - 우리 동네 배움터",
   description: "우리 동네의 문화센터 강좌 정보를 한눈에!",
   manifest: "/manifest.json",
-  themeColor: "#f97316",
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 1,
-  },
   icons: {
     icon: "/icon.png",
     apple: "/icon.png",
     shortcut: "/icon.png",
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#f97316",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
 };
 
 export default function RootLayout({

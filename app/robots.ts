@@ -1,12 +1,15 @@
-import { MetadataRoute } from 'next';
+import { MetadataRoute } from "next";
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://woodongbae.xyz";
 
 export default function robots(): MetadataRoute.Robots {
+    const disallow = ["/api/", "/admin/", "/mypage/", "/auth/"];
+
     return {
-        rules: {
-            userAgent: '*',
-            allow: '/',
-            disallow: ['/api/', '/admin/'], // API나 관리자 페이지는 숨김
-        },
-        sitemap: 'https://woodongbae.xyz/sitemap.xml',
+        rules: [
+            { userAgent: "*", allow: "/", disallow },
+            { userAgent: "Yeti", allow: "/", disallow },
+        ],
+        sitemap: `${SITE_URL}/sitemap.xml`,
     };
 }

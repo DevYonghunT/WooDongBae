@@ -23,20 +23,34 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         };
     }
 
+    const title = `${course.region} ${course.category} 강좌 - ${course.title}`;
+    const description = `"${course.institution}"에서 진행하는 "${course.category}" 강좌입니다. 수강료: ${course.price}. 우동배에서 자세한 정보를 확인하세요.`;
+    const imageUrl = course.imageUrl || "/og/default.png";
+
     return {
-        title: `${course.region} ${course.category} 강좌 - ${course.title} | 우동배`,
-        description: `"${course.institution}"에서 진행하는 "${course.category}" 강좌입니다. 수강료: ${course.price}. 우동배에서 자세한 정보를 확인하세요.`,
+        title: title,
+        description: description,
+        alternates: {
+            canonical: `/courses/${id}`,
+        },
         openGraph: {
-            title: `${course.region} ${course.category} 강좌 - ${course.title} | 우동배`,
-            description: `"${course.institution}"에서 진행하는 "${course.category}" 강좌입니다.`,
+            title: `${title} | 우동배`,
+            description: description,
+            url: `/courses/${id}`,
             images: [
                 {
-                    url: course.imageUrl,
+                    url: imageUrl,
                     width: 800,
                     height: 600,
                     alt: course.title,
                 },
             ],
+        },
+        twitter: {
+            card: "summary_large_image",
+            title: `${title} | 우동배`,
+            description: description,
+            images: [imageUrl],
         },
     };
 }

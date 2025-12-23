@@ -15,14 +15,47 @@ const notoSansKr = Noto_Sans_KR({
   variable: "--font-noto-sans-kr",
 });
 
+const DEFAULT_SITE_URL = "https://www.woodongbae.xyz";
+const rawSiteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? DEFAULT_SITE_URL).trim();
+const SITE_URL = rawSiteUrl.replace(/\/+$/, "");
+
 export const metadata: Metadata = {
-  title: "우동배 - 우리 동네 배움터",
-  description: "우리 동네의 문화센터 강좌 정보를 한눈에!",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "우동배 - 우리 동네 배움터",
+    template: "%s | 우동배",
+  },
+  description: "우리 동네의 문화센터 강좌 정보를 한눈에! 가까운 도서관, 주민자치센터 강좌를 찾아보세요.",
   manifest: "/manifest.json",
   icons: {
     icon: "/icon.png",
     apple: "/icon.png",
     shortcut: "/icon.png",
+  },
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    type: "website",
+    locale: "ko_KR",
+    siteName: "우동배",
+    title: "우동배 - 우리 동네 배움터",
+    description: "우리 동네의 문화센터 강좌 정보를 한눈에! 가까운 도서관, 주민자치센터 강좌를 찾아보세요.",
+    url: SITE_URL,
+    images: [
+      {
+        url: "/og/default.png",
+        width: 1200,
+        height: 630,
+        alt: "우동배 - 우리 동네 배움터",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "우동배 - 우리 동네 배움터",
+    description: "우리 동네의 문화센터 강좌 정보를 한눈에! 가까운 도서관, 주민자치센터 강좌를 찾아보세요.",
+    images: ["/og/default.png"],
   },
 };
 

@@ -3,7 +3,17 @@ import { getRecommendedCourses } from "@/lib/db-api";
 import CourseCard from "@/components/CourseCard";
 import { ThumbsUp } from "lucide-react";
 
+import { Metadata } from "next";
+
 export const dynamic = "force-dynamic"; // 매번 새로운 추천을 위해 동적 렌더링
+
+export const metadata: Metadata = {
+  title: "강좌 찾기",
+  description: "이번 주말, 가까운 도서관에서 나만의 취미를 찾아보세요. 강좌 모아보기 + 키워드 알림 + 찜 기능으로 편리하게!",
+  openGraph: {
+    url: "/",
+  },
+};
 
 export default async function Home() {
   const recommendedCourses = await getRecommendedCourses();

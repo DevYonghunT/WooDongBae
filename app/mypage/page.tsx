@@ -3,8 +3,22 @@ import Link from "next/link";
 import { Heart } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import KeywordSection from "@/components/KeywordSection";
+import { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+    title: "마이페이지",
+    description: "찜한 강좌와 알림 키워드를 관리하세요.",
+    robots: {
+        index: false,
+        follow: false,
+    },
+    openGraph: {
+        title: "마이페이지 | 우동배",
+        url: "/mypage",
+    },
+};
 
 export default async function MyPage() {
     const supabase = await createClient();

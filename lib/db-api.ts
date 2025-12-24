@@ -166,7 +166,9 @@ export async function getFilterMetadata(): Promise<FilterMetadata[]> {
             }
         }
 
-        console.log(`✅ [Metadata] Loaded ${uniqueData.length} unique records from ${allData.length} total rows.`);
+        if (process.env.NODE_ENV !== 'production') {
+            console.log(`✅ [Metadata] Loaded ${uniqueData.length} unique records from ${allData.length} total rows.`);
+        }
         return uniqueData;
 
     } catch (error) {
@@ -191,7 +193,7 @@ export async function getPaginatedCourses(
                     const compactMinor = filters.minorRegion.replace(/\s+/g, '');
                     query = query.ilike('region', `%${compactMinor}%`);
                 } else {
-                    query = query.or('region.ilike.%구,region.ilike.%서울%');
+                    query = query.or('region.ilike.%구%,region.ilike.%서울%');
                 }
             } else {
                 const compactMajor = filters.majorRegion.replace(/\s+/g, '');

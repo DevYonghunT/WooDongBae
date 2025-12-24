@@ -43,44 +43,7 @@ export default function CourseExplorer() {
         loadMetadata();
     }, []);
 
-    // ─── [A-2] [추가] 로그인 상태 확인 후 찜 목록 동기화 ───
-    // 페이지 로드 시점(또는 새로고침)에 Auth가 늦게 로드될 수 있으므로 별도 체크
-    useEffect(() => {
-        async function syncBookmarks() {
-            try {
-                const { data: { session } } = await import("@/utils/supabase/client").then(m => m.createClient().auth.getSession());
-
-                if (session?.user) {
-                    const { createClient } = await import("@/utils/supabase/client");
-                    const supabase = createClient();
-
-                    const { data: likeData } = await supabase
-                        .from('bookmarks') // 테이블명 확인 (bookmarks or likes)
-                        .select('course_id')
-                        .eq('user_id', session.user.id);
-
-                    if (likeData) {
-                        const likedIds = new Set(likeData.map((item: any) => item.course_id));
-
-                        setCourses(prevCourses =>
-                            prevCourses.map(course => ({
-                                ...course,
-                                isBookmarked: likedIds.has(course.id) ? true : course.isBookmarked
-                            }))
-                        );
-                    }
-                }
-            } catch (err) {
-                console.error("찜 목록 동기화 실패:", err);
-            }
-        }
-
-        // 약간의 지연 후 실행하여 목록이 로드된 뒤 매칭되도록 함 (선택사항)
-        syncBookmarks();
-    }, [isLoading]); // 로딩이 끝날 때마다 체크? 아니면 최초 1회?
-    // 로딩이 끝난 직후(isLoading changes false)에 체크하는 게 좋음.
-    // 하지만 courses가 바뀔 때마다 체크해야 할 수도 있음.
-    // 일단 간단히 마운트 시 + isLoading(페이지네이션 결과물) 변경 시 체크.
+    // ─── [A-2] 찜 목록 동기화 로직 제거 (getPaginatedCourses에서 처리됨) ───
 
     // ─── [B] 데이터 로딩 함수 ───
     const fetchCourses = useCallback(async (pageNum: number, isReset: boolean = false) => {
@@ -136,7 +99,7 @@ export default function CourseExplorer() {
                     setPage(prev => prev + 1);
                 }
             },
-            { threshold: 1.0 }
+            { threshold: 0.2, rootMargin: "300px" }
         );
 
         if (observerTarget.current) {

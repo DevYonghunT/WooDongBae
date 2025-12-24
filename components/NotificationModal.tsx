@@ -64,66 +64,123 @@ export default function NotificationModal({ isOpen, onClose, userId }: Notificat
         }
     };
 
+    const [statusMessage, setStatusMessage] = useState<string>("");
+
+    // SW Ready Timeout Wrapper
+    const waitForServiceWorker = async (timeoutMs = 5000) => {
+        if (!('serviceWorker' in navigator)) throw new Error("Service Worker not supported");
+
+        const readyPromise = navigator.serviceWorker.ready;
+        const timeoutPromise = new Promise<ServiceWorkerRegistration>((_, reject) =>
+            setTimeout(() => reject(new Error("Service Worker readiness timed out")), timeoutMs)
+        );
+
+        return Promise.race([readyPromise, timeoutPromise]);
+    };
+
     // 알림 구독 핸들러
     const handleSubscribe = async () => {
         if (!userId) {
             alert("로그인이 필요합니다.");
             return;
         }
-        if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-            alert("이 브라우저는 푸시 알림을 지원하지 않습니다.");
-            return;
-        }
+        if (loading) return; // 중복 클릭 방지
 
-        const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-        if (!vapidKey) {
-            alert("VAPID 공개키가 설정되지 않았습니다. 관리자에게 문의하세요.");
-            console.error("Missing NEXT_PUBLIC_VAPID_PUBLIC_KEY");
-            return;
-        }
+        setLoading(true);
+        setStatusMessage("알림 권한을 확인하고 있습니다...");
 
         try {
-            const permission = await Notification.requestPermission();
-            if (permission !== "granted") {
-                alert(`알림 권한이 거부되었습니다. (상태: ${permission})`);
+            if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+                throw new Error("이 브라우저는 푸시 알림을 지원하지 않습니다.");
+            }
+
+            // 1. 권한 확인 및 요청
+            let permission = Notification.permission;
+            console.log("[Push] Current permission:", permission);
+
+            if (permission === 'denied') {
+                setStatusMessage("알림 권한이 차단되어 있습니다.");
+                alert("브라우저 설정에서 알림 권한을 '허용'으로 변경해주세요.");
+                setLoading(false);
                 return;
             }
 
-            // 디버깅: SW 등록 대기
-            console.log("Waiting for SW ready...");
-            const registration = await navigator.serviceWorker.ready;
-            console.log("SW Ready:", registration);
-
-            if (!registration.active) {
-                alert("서비스 워커가 활성화되지 않았습니다. 페이지를 새로고침 해보세요.");
-                return;
+            if (permission === 'default') {
+                setStatusMessage("알림 권한 허용을 요청하는 중...");
+                permission = await Notification.requestPermission();
+                if (permission !== 'granted') {
+                    setStatusMessage("알림 권한이 거부되었습니다.");
+                    setLoading(false);
+                    return;
+                }
             }
 
-            const sub = await registration.pushManager.subscribe({
-                userVisibleOnly: true,
-                applicationServerKey: urlBase64ToUint8Array(vapidKey.trim())
+            // 2. 서비스 워커 확인
+            setStatusMessage("서비스 워커를 준비하고 있습니다...");
+
+            // SW가 없는 경우 등록 시도
+            if (!navigator.serviceWorker.controller) {
+                console.log("[Push] No controller found, registering sw.js...");
+                await navigator.serviceWorker.register('/sw.js');
+            }
+
+            const registration = await waitForServiceWorker(5000).catch(err => {
+                // Timeout 발생 시, 혹시 모르니 register 다시 시도하거나 에러 처리
+                console.error("[Push] SW Ready Timeout:", err);
+                throw new Error("서비스 워커 연결 시간이 초과되었습니다. 페이지를 새로고침 해주세요.");
             });
 
-            console.log("Subscription:", sub);
+            console.log("[Push] SW Ready:", registration);
 
-            // 서버에 저장
+            if (!registration.active) {
+                throw new Error("서비스 워커가 활성화되지 않았습니다. 잠시 후 다시 시도해주세요.");
+            }
+
+            // 3. 기존 구독 확인
+            setStatusMessage("구독 정보를 확인하고 있습니다...");
+            let subscription = await registration.pushManager.getSubscription();
+
+            if (subscription) {
+                console.log("[Push] Found existing subscription:", subscription);
+                setStatusMessage("이미 알림이 활성화되어 있습니다.");
+                setIsSubscribed(true);
+                // DB 싱크를 위해 넘어가거나 종료 (여기서는 DB 싱크까지 수행)
+            } else {
+                // 4. 새 구독 생성
+                setStatusMessage("서버에 알림을 구독하는 중...");
+                const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+                if (!vapidKey) throw new Error("VAPID 공개키가 설정되지 않았습니다.");
+
+                subscription = await registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(vapidKey.trim())
+                });
+            }
+
+            // 5. 서버에 저장 (Upsert)
+            setStatusMessage("구독 정보를 서버에 저장하는 중...");
             const { error } = await supabase.from('push_subscriptions').upsert({
                 user_id: userId,
-                endpoint: sub.endpoint,
-                keys: sub.toJSON().keys
+                endpoint: subscription.endpoint,
+                keys: subscription.toJSON().keys
             });
 
             if (error) {
                 console.error("DB 저장 실패:", error);
-                alert(`구독 정보 저장 실패: ${error.message}`);
-                throw error;
+                throw new Error(`서버 저장 실패: ${error.message}`);
             }
 
+            console.log("[Push] Subscription success");
+            setStatusMessage("");
             setIsSubscribed(true);
-            alert("푸시 알림이 활성화되었습니다! 🍊");
+            alert("푸시 알림이 성공적으로 활성화되었습니다! 🍊");
+
         } catch (e: any) {
-            console.error(e);
-            alert(`알림 설정 중 오류가 발생했습니다: ${e.message || e}`);
+            console.error("[Push Error]", e);
+            setStatusMessage(`오류: ${e.message}`);
+            alert(`알림 설정 실패: ${e.message}`);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -204,15 +261,32 @@ export default function NotificationModal({ isOpen, onClose, userId }: Notificat
 
                 {/* 알림 권한/설정 바 */}
                 {!isSubscribed && (
-                    <div className="px-5 py-3 bg-orange-50 flex items-center justify-between">
-                        <span className="text-xs text-orange-700 font-medium">실시간 푸시 알림 받기</span>
-                        <button
-                            onClick={handleSubscribe}
-                            className="bg-orange-500 hover:bg-orange-600 text-white text-xs px-3 py-1.5 rounded-lg flex items-center gap-1 transition-colors"
-                        >
-                            <BellRing className="w-3 h-3" />
-                            알림 켜기
-                        </button>
+                    <div className="px-5 py-3 bg-orange-50 flex flex-col gap-2">
+                        <div className="flex items-center justify-between">
+                            <span className="text-xs text-orange-700 font-medium">실시간 푸시 알림 받기</span>
+                            <button
+                                onClick={handleSubscribe}
+                                disabled={loading}
+                                className={`bg-orange-500 hover:bg-orange-600 text-white text-xs px-3 py-1.5 rounded-lg flex items-center gap-1 transition-colors ${loading ? 'opacity-50 cursor-wait' : ''}`}
+                            >
+                                {loading ? (
+                                    <>
+                                        <span className="loading loading-spinner loading-xs"></span>
+                                        처리중
+                                    </>
+                                ) : (
+                                    <>
+                                        <BellRing className="w-3 h-3" />
+                                        알림 켜기
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                        {statusMessage && (
+                            <p className="text-[10px] text-orange-600 animate-pulse font-medium">
+                                {statusMessage}
+                            </p>
+                        )}
                     </div>
                 )}
 

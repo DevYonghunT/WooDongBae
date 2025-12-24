@@ -8,6 +8,7 @@ import FeedbackWidget from "@/components/FeedbackWidget";
 import Header from "@/components/Header";
 import PushNotificationButton from "@/components/PushNotificationButton";
 import LoginModal from "@/components/LoginModal";
+import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 
 const notoSansKr = Noto_Sans_KR({
   subsets: ["latin"],
@@ -74,6 +75,9 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body className={`${notoSansKr.variable} font-sans bg-stone-50 text-stone-700 antialiased relative`}>
+        {/* 서비스 워커 강제 등록 */}
+        <ServiceWorkerRegister />
+
         {/* 👇 [추가] 모달을 전역 배치 */}
         <LoginModal />
 

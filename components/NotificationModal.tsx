@@ -115,19 +115,20 @@ export default function NotificationModal({ isOpen, onClose, userId }: Notificat
                 }
             }
 
-            // 2. 서비스 워커 확인
+            // 2. 서비스 워커 확인 및 등록
             setStatusMessage("서비스 워커를 준비하고 있습니다...");
 
-            // SW가 없는 경우 등록 시도
-            if (!navigator.serviceWorker.controller) {
-                console.log("[Push] No controller found, registering sw.js...");
-                await navigator.serviceWorker.register('/sw.js');
+            let reg = await navigator.serviceWorker.getRegistration();
+            if (!reg) {
+                console.log("[Push] No registration found, registering sw.js...");
+                reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
             }
 
             const registration = await waitForServiceWorker(5000).catch(err => {
-                // Timeout 발생 시, 혹시 모르니 register 다시 시도하거나 에러 처리
                 console.error("[Push] SW Ready Timeout:", err);
-                throw new Error("서비스 워커 연결 시간이 초과되었습니다. 페이지를 새로고침 해주세요.");
+                // 타임아웃 시 한 번 더 시도하거나 안내
+                if (reg?.active) return reg; // 이미 active면 반환
+                throw new Error("서비스 워커 준비가 늦어지고 있습니다. 새로고침 후 다시 시도해주세요.");
             });
 
             console.log("[Push] SW Ready:", registration);

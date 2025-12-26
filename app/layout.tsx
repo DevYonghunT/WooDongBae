@@ -81,6 +81,21 @@ export default function RootLayout({
         {/* 👇 [추가] 모달을 전역 배치 */}
         <LoginModal />
 
+        {/* 구글 애널리틱스 (Google tag) */}
+        <Script
+          async
+          src="https://www.googletagmanager.com/gtag/js?id=G-NNDKQ3G8J5"
+        />
+        <Script id="google-analytics">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+
+            gtag('config', 'G-NNDKQ3G8J5');
+          `}
+        </Script>
+
         {/* 구글 애드센스 */}
         <Script
           async

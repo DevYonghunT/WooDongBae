@@ -3,6 +3,8 @@ import Link from "next/link";
 import { Heart } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import KeywordSection from "@/components/KeywordSection";
+import NotificationSettingsPanel from "@/components/NotificationSettingsPanel";
+import ProfileCard from "@/components/ProfileCard";
 import { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -44,21 +46,7 @@ export default async function MyPage() {
             <div className="max-w-4xl mx-auto space-y-8">
 
                 {/* 프로필 섹션 */}
-                <div className="bg-white rounded-2xl p-8 shadow-sm border border-stone-100 flex items-center gap-6">
-                    <img
-                        src={user.user_metadata.avatar_url || "https://via.placeholder.com/100"}
-                        alt="프로필"
-                        className="w-24 h-24 rounded-full border-4 border-orange-50"
-                    />
-                    <div>
-                        <h1 className="text-2xl font-bold text-stone-800">
-                            {user.user_metadata.full_name || user.user_metadata.name || "사용자"}님, 안녕하세요! 👋
-                        </h1>
-                        {!user.email?.includes('woodongbae.xyz') && (
-                            <p className="text-stone-500 mt-1">{user.email}</p>
-                        )}
-                    </div>
-                </div>
+                <ProfileCard user={user} />
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     {/* 찜한 강좌 목록 */}
@@ -96,6 +84,9 @@ export default async function MyPage() {
                     {/* 알림 키워드 관리 */}
                     <KeywordSection />
                 </div>
+
+                {/* 알림 설정 패널 (전체 너비) */}
+                <NotificationSettingsPanel />
             </div>
         </div>
     );

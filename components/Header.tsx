@@ -6,6 +6,7 @@ import Image from "next/image";
 import { Search, Menu, X, Heart } from "lucide-react";
 import { useLoginModal } from "../store/useLoginModal";
 import { createClient } from "@/utils/supabase/client";
+import { subscribeToRealtimeNotifications, requestNotificationPermission } from "@/lib/realtime-notification";
 
 // 👇 [추가] 로그인 모달 컴포넌트를 가져옵니다.
 
@@ -20,6 +21,14 @@ export default function Header() {
         const checkUser = async () => {
             const { data: { user } } = await supabase.auth.getUser();
             setUser(user);
+
+            // 로그인된 사용자에 대해 Realtime 알림 구독
+            if (user) {
+                subscribeToRealtimeNotifications(user.id, (notification) => {
+                    console.log("[Header] New notification received:", notification);
+                    // 여기서 추가 처리 가능 (예: 토스트 알림, 배지 업데이트 등)
+                });
+            }
         };
         checkUser();
 
@@ -28,6 +37,11 @@ export default function Header() {
             if (_event === 'SIGNED_OUT') {
                 setUser(null);
                 window.location.href = "/";
+            } else if (_event === 'SIGNED_IN' && session?.user) {
+                // 로그인 시 Realtime 알림 구독
+                subscribeToRealtimeNotifications(session.user.id, (notification) => {
+                    console.log("[Header] New notification received:", notification);
+                });
             }
         });
 

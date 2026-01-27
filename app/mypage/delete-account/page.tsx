@@ -5,6 +5,7 @@ import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, AlertTriangle, Loader2, Trash2 } from "lucide-react";
+import toast from "react-hot-toast";
 
 const DELETION_REASONS = [
     "서비스가 만족스럽지 않습니다",
@@ -117,7 +118,7 @@ export default function DeleteAccountPage() {
             await supabase.auth.signOut();
 
             // 4. 홈으로 리다이렉트
-            alert("회원 탈퇴가 완료되었습니다. 그동안 이용해주셔서 감사합니다.");
+            toast.success("회원 탈퇴가 완료되었습니다. 그동안 이용해주셔서 감사합니다.");
             router.push("/");
         } catch (err: any) {
             console.error("[Delete Account Error]", err);

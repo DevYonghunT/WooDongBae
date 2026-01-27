@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Heart } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { useLoginModal } from "@/store/useLoginModal";
+import toast from "react-hot-toast";
 
 // 👇 [변경] 공통 클라이언트 사용 (쿠키 공유됨)
 const supabase = createClient();
@@ -92,13 +93,15 @@ export default function BookmarkButton({ courseId, initialIsBookmarked = false }
             console.error("찜 변경 실패:", error);
             // 에러 발생 시 UI 원상복구
             setIsBookmarked(!newStatus);
-            alert(`오류가 발생했습니다.\n${error instanceof Error ? error.message : "알 수 없는 오류"}`);
+            toast.error(`오류가 발생했습니다: ${error instanceof Error ? error.message : "알 수 없는 오류"}`);
         }
     };
 
     return (
         <button
             onClick={toggleBookmark}
+            aria-label={isBookmarked ? "찜 해제하기" : "강좌 찜하기"}
+            aria-pressed={isBookmarked}
             className={`p-2 rounded-full transition-all ${isBookmarked
                 ? "text-red-500 bg-red-50 hover:bg-red-100"
                 : "text-gray-400 bg-black/5 hover:bg-black/10 hover:text-red-400"

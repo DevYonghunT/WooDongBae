@@ -5,6 +5,7 @@ import { BellRing } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 // 👇 상대 경로로 수정하여 안전하게 가져옵니다
 import { useLoginModal } from "../store/useLoginModal";
+import toast from "react-hot-toast";
 
 // 👇 [변경] 공통 클라이언트 사용 (쿠키 공유됨)
 const supabase = createClient();
@@ -65,13 +66,13 @@ export default function PushNotificationButton() {
         setLoading(true);
         try {
             if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-                alert("이 브라우저는 푸시 알림을 지원하지 않습니다.");
+                toast.error("이 브라우저는 푸시 알림을 지원하지 않습니다.");
                 return;
             }
 
             const permission = await Notification.requestPermission();
             if (permission !== "granted") {
-                alert("알림 권한이 거부되었습니다. 브라우저 설정에서 허용해주세요.");
+                toast.error("알림 권한이 거부되었습니다. 브라우저 설정에서 허용해주세요.");
                 return;
             }
 
@@ -90,11 +91,11 @@ export default function PushNotificationButton() {
             if (error && error.code !== "23505") throw error;
 
             setIsSubscribed(true);
-            alert("알림 설정이 완료되었습니다! 🔔");
+            toast.success("알림 설정이 완료되었습니다!");
 
         } catch (error) {
             console.error("알림 설정 실패:", error);
-            alert("알림 설정 중 오류가 발생했습니다.");
+            toast.error("알림 설정 중 오류가 발생했습니다.");
         } finally {
             setLoading(false);
         }
@@ -106,11 +107,11 @@ export default function PushNotificationButton() {
     return (
         <>
             <button
-                onClick={handleSubscribe} // 이제 모달 열기
+                onClick={handleSubscribe}
                 disabled={loading}
+                aria-label="알림 센터 열기"
                 className={`fixed top-20 right-4 z-40 p-3 rounded-full shadow-lg transition-all active:scale-95 bg-white text-orange-500 hover:bg-orange-50 border border-orange-100 animate-in fade-in zoom-in`}
             >
-                {/* 읽지 않은 알림 뱃지 표시 로직 추가 가능 */}
                 <BellRing className="w-6 h-6" />
             </button>
 

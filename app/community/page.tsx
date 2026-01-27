@@ -1,10 +1,13 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Megaphone, PenTool } from "lucide-react";
+import dynamic from "next/dynamic";
+import { Megaphone, PenTool, FolderOpen, MessageSquare } from "lucide-react";
 import { getCommunityData } from "@/app/actions/community";
-import WritePostModal from "@/components/WritePostModal";
 import { motion, AnimatePresence } from "framer-motion";
+
+// 글쓰기 모달 지연 로딩 (필요할 때만 로드)
+const WritePostModal = dynamic(() => import("@/components/WritePostModal"));
 
 export default function CommunityPage() {
     const [activeTab, setActiveTab] = useState<"notice" | "free">("free");
@@ -106,15 +109,30 @@ export default function CommunityPage() {
                 {/* 게시글 목록 영역 */}
                 <div className="space-y-3">
                     {isLoading ? (
-                        <div className="text-center py-20 text-gray-400">로딩 중...</div>
+                        <div className="space-y-3">
+                            {[1, 2, 3].map((i) => (
+                                <div key={i} className="p-5 bg-white rounded-2xl border border-gray-100 animate-pulse">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <div className="h-4 w-16 bg-gray-200 rounded-md" />
+                                        <div className="h-4 w-12 bg-gray-100 rounded-md" />
+                                    </div>
+                                    <div className="h-5 w-3/4 bg-gray-200 rounded mb-2" />
+                                    <div className="h-4 w-full bg-gray-100 rounded" />
+                                </div>
+                            ))}
+                        </div>
                     ) : (
                         <>
                             {/* === 공지사항 탭 === */}
                             {activeTab === "notice" && (
                                 <div className="space-y-3">
                                     {data.notices.length === 0 ? (
-                                        <div className="text-center py-20 text-gray-400 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-                                            아직 등록된 공지사항이 없습니다.
+                                        <div className="flex flex-col items-center justify-center py-20 px-4 text-center bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                                            <div className="w-16 h-16 bg-orange-50 rounded-full flex items-center justify-center mb-4">
+                                                <Megaphone className="w-8 h-8 text-orange-400" />
+                                            </div>
+                                            <h3 className="text-lg font-bold text-gray-700 mb-1">아직 공지사항이 없어요</h3>
+                                            <p className="text-sm text-gray-400">새로운 소식이 있으면 여기에 안내드릴게요.</p>
                                         </div>
                                     ) : (
                                         data.notices.map((notice) => {
@@ -177,8 +195,19 @@ export default function CommunityPage() {
                             {activeTab === "free" && (
                                 <div className="space-y-3">
                                     {data.posts.length === 0 ? (
-                                        <div className="text-center py-20 text-gray-400 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-                                            첫 번째 게시글의 주인공이 되어보세요! 🎉
+                                        <div className="flex flex-col items-center justify-center py-20 px-4 text-center bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                                            <div className="w-16 h-16 bg-orange-50 rounded-full flex items-center justify-center mb-4">
+                                                <MessageSquare className="w-8 h-8 text-orange-400" />
+                                            </div>
+                                            <h3 className="text-lg font-bold text-gray-700 mb-1">아직 게시글이 없어요</h3>
+                                            <p className="text-sm text-gray-400 mb-4">첫 번째 게시글의 주인공이 되어보세요!</p>
+                                            <button
+                                                onClick={() => setIsWriteOpen(true)}
+                                                className="flex items-center gap-2 px-4 py-2.5 bg-gray-900 text-white rounded-xl text-sm font-bold hover:bg-gray-800 transition-colors"
+                                            >
+                                                <PenTool className="w-4 h-4" />
+                                                글쓰기
+                                            </button>
                                         </div>
                                     ) : (
                                         data.posts.map((post) => {

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Bell, X, Send } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { subscribeAlert } from "@/app/actions/alert";
+import toast from "react-hot-toast";
 
 export default function AlertWidget() {
     const [isOpen, setIsOpen] = useState(false);
@@ -17,7 +18,11 @@ export default function AlertWidget() {
         const result = await subscribeAlert(formData);
 
         setIsSubmitting(false);
-        alert(result.message);
+        if (result.success) {
+            toast.success(result.message);
+        } else {
+            toast.error(result.message);
+        }
 
         if (result.success) {
             setIsOpen(false);

@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
-import { Trash2, AlertCircle } from "lucide-react";
+import { Trash2, AlertCircle, Bell } from "lucide-react";
+import toast from "react-hot-toast";
 
 interface Keyword {
     id: string; // Assuming 'keywords' table has an ID
@@ -44,7 +45,7 @@ export default function KeywordSection() {
             const { data: { user } } = await supabase.auth.getUser();
 
             if (!user) {
-                alert("로그인이 필요합니다.");
+                toast.error("로그인이 필요합니다.");
                 return;
             }
 
@@ -59,7 +60,7 @@ export default function KeywordSection() {
             setInput("");
         } catch (error: any) {
             console.error("키워드 추가 실패:", error.message || error);
-            alert("키워드 추가에 실패했습니다.");
+            toast.error("키워드 추가에 실패했습니다.");
         } finally {
             setLoading(false);
         }
@@ -71,7 +72,7 @@ export default function KeywordSection() {
         if (!error) {
             setKeywords(keywords.filter((k) => k.id !== id));
         } else {
-            alert("삭제에 실패했습니다.");
+            toast.error("삭제에 실패했습니다.");
         }
     };
 
@@ -84,7 +85,9 @@ export default function KeywordSection() {
 
             {/* 입력창 */}
             <div className="flex gap-2 mb-6">
+                <label htmlFor="keyword-input" className="sr-only">알림 키워드 입력</label>
                 <input
+                    id="keyword-input"
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     placeholder="예: 수영, 요가"
@@ -104,9 +107,13 @@ export default function KeywordSection() {
             {/* 목록 */}
             <div className="flex flex-wrap gap-2">
                 {keywords.length === 0 ? (
-                    <p className="text-stone-400 text-sm py-4 w-full text-center bg-stone-50 rounded-lg">
-                        등록된 알림 키워드가 없습니다.
-                    </p>
+                    <div className="flex flex-col items-center justify-center py-8 w-full text-center bg-stone-50 rounded-xl">
+                        <div className="w-12 h-12 bg-orange-50 rounded-full flex items-center justify-center mb-3">
+                            <Bell className="w-6 h-6 text-orange-400" />
+                        </div>
+                        <p className="text-sm font-medium text-stone-500 mb-1">등록된 키워드가 없어요</p>
+                        <p className="text-xs text-stone-400">관심 키워드를 추가하면 새 강좌 알림을 받을 수 있어요.</p>
+                    </div>
                 ) : (
                     keywords.map((k) => (
                         <span

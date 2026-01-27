@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { Course } from "@/types/course";
-
+import { cachedQuery } from "@/lib/cache";
 import { normalizeRegionAndInstitution, refineInstitutionName } from "@/utils/normalization";
 
 // [설정 1] 환경 변수 가드
@@ -117,64 +117,66 @@ function mapRawToCourse(row: any): Course {
     };
 }
 
-// [핵심 수정] 필터링용 메타데이터 (Efficient Fetching)
+// [핵심 수정] 필터링용 메타데이터 (Efficient Fetching + 서버 사이드 캐싱)
 export async function getFilterMetadata(): Promise<FilterMetadata[]> {
-    try {
-        const batchSize = 1000;
-        let hasMore = true;
-        let page = 0;
-        const allData: FilterMetadata[] = [];
+    return cachedQuery('filter-metadata', async () => {
+        try {
+            const batchSize = 1000;
+            let hasMore = true;
+            let page = 0;
+            const allData: FilterMetadata[] = [];
 
-        // Supabase에서 distinct 지원이 제한적이므로, 컬럼만 가져와서 JS Set으로 중복 제거
-        // 메모리 효율을 위해 필요한 컬럼만 정확히 선택
-        while (hasMore) {
-            const { data, error } = await supabase
-                .from('courses')
-                .select('region, institution')
-                .not('region', 'is', null)
-                .range(page * batchSize, (page + 1) * batchSize - 1);
+            // Supabase에서 distinct 지원이 제한적이므로, 컬럼만 가져와서 JS Set으로 중복 제거
+            // 메모리 효율을 위해 필요한 컬럼만 정확히 선택
+            while (hasMore) {
+                const { data, error } = await supabase
+                    .from('courses')
+                    .select('region, institution')
+                    .not('region', 'is', null)
+                    .range(page * batchSize, (page + 1) * batchSize - 1);
 
-            if (error) throw error;
+                if (error) throw error;
 
-            if (data) {
-                // 타입 단언: Supabase 반환값이 Partial<T> 일 수 있으므로
-                const typedData = data as unknown as FilterMetadata[];
-                const normalized = typedData.map(item =>
-                    normalizeRegionAndInstitution(item.region, item.institution)
-                );
-                allData.push(...normalized);
+                if (data) {
+                    // 타입 단언: Supabase 반환값이 Partial<T> 일 수 있으므로
+                    const typedData = data as unknown as FilterMetadata[];
+                    const normalized = typedData.map(item =>
+                        normalizeRegionAndInstitution(item.region, item.institution)
+                    );
+                    allData.push(...normalized);
 
-                if (data.length < batchSize) {
-                    hasMore = false;
+                    if (data.length < batchSize) {
+                        hasMore = false;
+                    } else {
+                        page++;
+                    }
                 } else {
-                    page++;
+                    hasMore = false;
                 }
-            } else {
-                hasMore = false;
             }
-        }
 
-        // 중복 제거
-        const uniqueSet = new Set<string>();
-        const uniqueData: FilterMetadata[] = [];
+            // 중복 제거
+            const uniqueSet = new Set<string>();
+            const uniqueData: FilterMetadata[] = [];
 
-        for (const item of allData) {
-            const key = `${item.region}|${item.institution}`;
-            if (!uniqueSet.has(key)) {
-                uniqueSet.add(key);
-                uniqueData.push(item);
+            for (const item of allData) {
+                const key = `${item.region}|${item.institution}`;
+                if (!uniqueSet.has(key)) {
+                    uniqueSet.add(key);
+                    uniqueData.push(item);
+                }
             }
-        }
 
-        if (process.env.NODE_ENV !== 'production') {
-            console.log(`✅ [Metadata] Loaded ${uniqueData.length} unique records from ${allData.length} total rows.`);
-        }
-        return uniqueData;
+            if (process.env.NODE_ENV !== 'production') {
+                console.log(`✅ [Metadata] Loaded ${uniqueData.length} unique records from ${allData.length} total rows.`);
+            }
+            return uniqueData;
 
-    } catch (error) {
-        console.error('Failed to fetch metadata:', error);
-        return [];
-    }
+        } catch (error) {
+            console.error('Failed to fetch metadata:', error);
+            return [];
+        }
+    }, 300); // 5분 캐시
 }
 
 // [함수 2] 페이지네이션 및 서버 사이드 필터링 적용 함수

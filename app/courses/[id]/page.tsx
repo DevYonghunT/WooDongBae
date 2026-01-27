@@ -1,12 +1,24 @@
-import { getCourseById } from "@/lib/db-api";
+import { getCourseById, supabase } from "@/lib/db-api";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Calendar, MapPin, User, Users, Clock, Phone, Building2, ChevronLeft, Heart } from "lucide-react";
 import ShareButton from "@/components/ShareButton";
-import BookmarkButton from "@/components/BookmarkButton"; // [추가]
-import KakaoMap from "@/components/KakaoMap"; // [추가]
-import { Metadata } from "next"; // [추가]
+import BookmarkButton from "@/components/BookmarkButton";
+import KakaoMapLazy from "@/components/KakaoMapLazy";
+import { Metadata } from "next";
+
+export const revalidate = 600; // 10분마다 ISR 재생성
+
+// 인기 강좌 미리 생성 (빌드 시)
+export async function generateStaticParams() {
+    const { data } = await supabase
+        .from('courses')
+        .select('id')
+        .limit(100);
+
+    return data?.map(c => ({ id: c.id.toString() })) || [];
+}
 
 interface PageProps {
     params: Promise<{ id: string }>;
@@ -206,7 +218,7 @@ export default async function CourseDetailPage({ params }: PageProps) {
                             오시는 길
                         </h2>
                         <div className="h-80 rounded-2xl overflow-hidden border border-gray-200">
-                            <KakaoMap placeName={course.institution} />
+                            <KakaoMapLazy placeName={course.institution} />
                         </div>
                     </div>
 

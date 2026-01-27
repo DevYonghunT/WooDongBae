@@ -5,7 +5,7 @@ import { ThumbsUp } from "lucide-react";
 
 import { Metadata } from "next";
 
-export const dynamic = "force-dynamic"; // 매번 새로운 추천을 위해 동적 렌더링
+export const revalidate = 300; // 5분마다 ISR 재생성 (추천 강좌 갱신)
 
 export const metadata: Metadata = {
   title: "강좌 찾기",

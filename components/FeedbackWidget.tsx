@@ -4,6 +4,7 @@ import { useState } from "react";
 import { MessageCircle, X, Send, Smile, Lightbulb, AlertTriangle, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { submitFeedback } from "@/app/actions/submit-feedback";
+import toast from "react-hot-toast";
 
 type FeedbackType = "compliment" | "suggestion" | "bug";
 
@@ -37,7 +38,7 @@ export default function FeedbackWidget() {
                 setEmail("");
             }, 2000);
         } else {
-            alert(result.message);
+            toast.error(result.message);
         }
     };
 

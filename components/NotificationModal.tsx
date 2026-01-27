@@ -6,7 +6,8 @@ import { createClient } from "@/utils/supabase/client";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import Link from "next/link";
-import { useLoginModal } from "@/store/useLoginModal"; // 로그인 안했으면 모달 띄우기 위해
+import { useLoginModal } from "@/store/useLoginModal";
+import toast from "react-hot-toast";
 
 // Notification 타입 (Supabase 테이블과 일치)
 interface Notification {
@@ -81,7 +82,7 @@ export default function NotificationModal({ isOpen, onClose, userId }: Notificat
     // 알림 구독 핸들러
     const handleSubscribe = async () => {
         if (!userId) {
-            alert("로그인이 필요합니다.");
+            toast.error("로그인이 필요합니다.");
             return;
         }
         if (loading) return; // 중복 클릭 방지
@@ -100,7 +101,7 @@ export default function NotificationModal({ isOpen, onClose, userId }: Notificat
 
             if (permission === 'denied') {
                 setStatusMessage("알림 권한이 차단되어 있습니다.");
-                alert("브라우저 설정에서 알림 권한을 '허용'으로 변경해주세요.");
+                toast.error("브라우저 설정에서 알림 권한을 '허용'으로 변경해주세요.");
                 setLoading(false);
                 return;
             }
@@ -174,12 +175,12 @@ export default function NotificationModal({ isOpen, onClose, userId }: Notificat
             console.log("[Push] Subscription success");
             setStatusMessage("");
             setIsSubscribed(true);
-            alert("푸시 알림이 성공적으로 활성화되었습니다! 🍊");
+            toast.success("푸시 알림이 성공적으로 활성화되었습니다!");
 
         } catch (e: any) {
             console.error("[Push Error]", e);
             setStatusMessage(`오류: ${e.message}`);
-            alert(`알림 설정 실패: ${e.message}`);
+            toast.error(`알림 설정 실패: ${e.message}`);
         } finally {
             setLoading(false);
         }
@@ -238,11 +239,14 @@ export default function NotificationModal({ isOpen, onClose, userId }: Notificat
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[60] flex items-start justify-end sm:items-start p-4 bg-black/20 backdrop-blur-sm transition-opacity" onClick={onClose}>
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-start justify-center sm:justify-end p-0 sm:p-4 bg-black/20 backdrop-blur-sm transition-opacity" onClick={onClose}>
             {/* 모달 본문 */}
             <div
-                className="w-full max-w-sm bg-white rounded-2xl shadow-2xl overflow-hidden mt-16 animate-in slide-in-from-right-10 fade-in duration-200"
+                className="w-full sm:max-w-sm bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden sm:mt-16 max-h-[85vh] sm:max-h-none animate-in slide-in-from-bottom sm:slide-in-from-right-10 fade-in duration-200"
                 onClick={(e) => e.stopPropagation()}
+                role="dialog"
+                aria-modal="true"
+                aria-label="알림 센터"
             >
                 {/* 헤더 */}
                 <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 bg-gray-50/50">
@@ -254,7 +258,7 @@ export default function NotificationModal({ isOpen, onClose, userId }: Notificat
                         </span>
                     </div>
                     <div className="flex items-center gap-3">
-                        <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+                        <button onClick={onClose} aria-label="알림 센터 닫기" className="text-gray-400 hover:text-gray-600">
                             <X className="w-5 h-5" />
                         </button>
                     </div>

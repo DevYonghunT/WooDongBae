@@ -2,6 +2,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
+import { hash, compare } from "bcryptjs";
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -21,9 +22,12 @@ export async function createPost(formData: FormData) {
     }
 
     try {
+        // bcrypt로 비밀번호 해싱 (saltRounds: 10)
+        const hashedPassword = await hash(password, 10);
+
         const { error } = await supabase.from("posts").insert({
             nickname,
-            password, // 실서비스에선 해시 암호화 권장 (MVP라 원문 저장)
+            password: hashedPassword,
             title,
             content,
             tag
@@ -37,6 +41,33 @@ export async function createPost(formData: FormData) {
         console.error("Post Error:", error);
         return { success: false, message: "등록 중 오류가 발생했습니다." };
     }
+}
+
+// 게시글 삭제 시 비밀번호 확인
+export async function deletePost(postId: string, inputPassword: string) {
+    // 1. DB에서 게시글 조회
+    const { data: post } = await supabase
+        .from("posts")
+        .select("password")
+        .eq("id", postId)
+        .single();
+
+    if (!post) return { success: false, message: "게시글을 찾을 수 없습니다." };
+
+    // 2. 비밀번호 검증 (bcrypt compare)
+    const isValid = await compare(inputPassword, post.password);
+    if (!isValid) return { success: false, message: "비밀번호가 일치하지 않습니다." };
+
+    // 3. 삭제
+    const { error } = await supabase.from("posts").delete().eq("id", postId);
+
+    if (error) {
+        console.error("Delete Post Error:", error);
+        return { success: false, message: "삭제 중 오류가 발생했습니다." };
+    }
+
+    revalidatePath("/community");
+    return { success: true, message: "게시글이 삭제되었습니다." };
 }
 
 // 데이터 조회 (공지 + 게시글)

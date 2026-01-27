@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Bell, Mail, Clock, Zap, Settings, CheckCircle2, XCircle, Send } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
+import toast from "react-hot-toast";
 
 interface NotificationPreferences {
     id?: number;
@@ -154,10 +155,10 @@ export default function NotificationSettingsPanel() {
 
             if (error) throw error;
 
-            alert("테스트 알림이 발송되었습니다! 알림 센터를 확인해보세요.");
+            toast.success("테스트 알림이 발송되었습니다! 알림 센터를 확인해보세요.");
         } catch (error) {
             console.error("테스트 알림 발송 실패:", error);
-            alert("테스트 알림 발송에 실패했습니다.");
+            toast.error("테스트 알림 발송에 실패했습니다.");
         } finally {
             setTestingNotification(false);
         }

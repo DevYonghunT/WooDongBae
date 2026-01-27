@@ -4,44 +4,64 @@ import { useState } from "react";
 import { X, Send, PenLine, Lock, User } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createPost } from "@/app/actions/community";
+import toast from "react-hot-toast";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+
+const postSchema = z.object({
+    nickname: z.string().min(2, "닉네임은 2자 이상이어야 합니다."),
+    password: z.string().min(4, "비밀번호는 4자리여야 합니다.").max(4, "비밀번호는 4자리여야 합니다."),
+    title: z.string().min(2, "제목은 2자 이상이어야 합니다.").max(100, "제목은 100자 이하여야 합니다."),
+    content: z.string().min(10, "내용은 10자 이상이어야 합니다."),
+});
+
+type PostForm = z.infer<typeof postSchema>;
 
 interface Props {
     isOpen: boolean;
     onClose: () => void;
-    onSuccess: () => void; // [추가] 글 쓰기 성공 시 실행할 함수
+    onSuccess: () => void;
 }
 
 const TAGS = ["잡담", "질문", "후기", "정보"];
 
 export default function WritePostModal({ isOpen, onClose, onSuccess }: Props) {
-    const [isSubmitting, setIsSubmitting] = useState(false);
     const [selectedTag, setSelectedTag] = useState("잡담");
 
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        setIsSubmitting(true);
+    const {
+        register,
+        handleSubmit,
+        formState: { errors, isSubmitting },
+        reset,
+    } = useForm<PostForm>({
+        resolver: zodResolver(postSchema),
+    });
 
-        const formData = new FormData(e.currentTarget);
+    const onSubmit = async (data: PostForm) => {
+        const formData = new FormData();
+        formData.append("nickname", data.nickname);
+        formData.append("password", data.password);
+        formData.append("title", data.title);
+        formData.append("content", data.content);
         formData.append("tag", selectedTag);
 
         const result = await createPost(formData);
 
-        setIsSubmitting(false);
         if (result.success) {
-            alert("게시글이 등록되었습니다!");
-            onSuccess(); // [수정] 새로고침 대신 부모가 준 '데이터 다시 불러오기' 실행
-            onClose();   // 모달 닫기
+            toast.success("게시글이 등록되었습니다!");
+            reset();
+            onSuccess();
+            onClose();
         } else {
-            alert(result.message);
+            toast.error(result.message);
         }
     };
 
-    // ... (아래 return 부분은 기존과 동일하므로 생략) ...
-    // ... 기존 return 코드 그대로 유지 ...
     return (
         <AnimatePresence>
             {isOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4">
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -54,7 +74,10 @@ export default function WritePostModal({ isOpen, onClose, onSuccess }: Props) {
                         initial={{ opacity: 0, scale: 0.95, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                        className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden z-10"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label="새 글 작성하기"
+                        className="relative w-full max-w-lg bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden z-10 max-h-[90vh] overflow-y-auto"
                     >
                         {/* Header */}
                         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-stone-50">
@@ -62,19 +85,21 @@ export default function WritePostModal({ isOpen, onClose, onSuccess }: Props) {
                                 <PenLine className="w-5 h-5 text-primary-500" />
                                 새 글 작성하기
                             </h3>
-                            <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
+                            <button onClick={onClose} aria-label="닫기" className="p-2 hover:bg-gray-200 rounded-full transition-colors">
                                 <X className="w-5 h-5 text-gray-500" />
                             </button>
                         </div>
 
                         {/* Form */}
-                        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+                        <form onSubmit={handleSubmit(onSubmit)} className="p-4 sm:p-6 space-y-4 sm:space-y-5">
                             {/* 태그 선택 */}
-                            <div className="flex gap-2">
+                            <div className="flex gap-2" role="radiogroup" aria-label="게시글 태그">
                                 {TAGS.map(tag => (
                                     <button
                                         key={tag}
                                         type="button"
+                                        role="radio"
+                                        aria-checked={selectedTag === tag}
                                         onClick={() => setSelectedTag(tag)}
                                         className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${selectedTag === tag
                                                 ? "bg-primary-100 text-primary-700 ring-1 ring-primary-500"
@@ -89,40 +114,52 @@ export default function WritePostModal({ isOpen, onClose, onSuccess }: Props) {
                             {/* 작성자 정보 */}
                             <div className="flex gap-3">
                                 <div className="relative flex-1">
+                                    <label htmlFor="write-nickname" className="sr-only">닉네임</label>
                                     <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                                     <input
-                                        name="nickname"
+                                        id="write-nickname"
+                                        {...register("nickname")}
                                         placeholder="닉네임"
-                                        required
-                                        className="w-full pl-9 pr-4 py-3 bg-gray-50 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary-200 focus:border-primary-500 outline-none text-sm transition-all"
+                                        className={`w-full pl-9 pr-4 py-3 bg-gray-50 rounded-xl border focus:ring-2 focus:ring-primary-200 focus:border-primary-500 outline-none text-sm transition-all ${errors.nickname ? "border-red-300" : "border-gray-200"}`}
                                     />
+                                    {errors.nickname && <p className="text-red-500 text-xs mt-1">{errors.nickname.message}</p>}
                                 </div>
                                 <div className="relative flex-1">
+                                    <label htmlFor="write-password" className="sr-only">비밀번호</label>
                                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                                     <input
-                                        name="password"
+                                        id="write-password"
+                                        {...register("password")}
                                         type="password"
                                         placeholder="비밀번호 (4자리)"
-                                        required
                                         maxLength={4}
-                                        className="w-full pl-9 pr-4 py-3 bg-gray-50 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary-200 focus:border-primary-500 outline-none text-sm transition-all"
+                                        className={`w-full pl-9 pr-4 py-3 bg-gray-50 rounded-xl border focus:ring-2 focus:ring-primary-200 focus:border-primary-500 outline-none text-sm transition-all ${errors.password ? "border-red-300" : "border-gray-200"}`}
                                     />
+                                    {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>}
                                 </div>
                             </div>
 
-                            <input
-                                name="title"
-                                placeholder="제목을 입력하세요"
-                                required
-                                className="w-full px-4 py-3 bg-gray-50 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary-200 focus:border-primary-500 outline-none text-sm font-medium transition-all"
-                            />
+                            <div>
+                                <label htmlFor="write-title" className="sr-only">제목</label>
+                                <input
+                                    id="write-title"
+                                    {...register("title")}
+                                    placeholder="제목을 입력하세요"
+                                    className={`w-full px-4 py-3 bg-gray-50 rounded-xl border focus:ring-2 focus:ring-primary-200 focus:border-primary-500 outline-none text-sm font-medium transition-all ${errors.title ? "border-red-300" : "border-gray-200"}`}
+                                />
+                                {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title.message}</p>}
+                            </div>
 
-                            <textarea
-                                name="content"
-                                placeholder="자유롭게 이야기를 나누어보세요."
-                                required
-                                className="w-full h-40 p-4 bg-gray-50 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary-200 focus:border-primary-500 outline-none text-sm resize-none transition-all"
-                            />
+                            <div>
+                                <label htmlFor="write-content" className="sr-only">내용</label>
+                                <textarea
+                                    id="write-content"
+                                    {...register("content")}
+                                    placeholder="자유롭게 이야기를 나누어보세요."
+                                    className={`w-full h-40 p-4 bg-gray-50 rounded-xl border focus:ring-2 focus:ring-primary-200 focus:border-primary-500 outline-none text-sm resize-none transition-all ${errors.content ? "border-red-300" : "border-gray-200"}`}
+                                />
+                                {errors.content && <p className="text-red-500 text-xs mt-1">{errors.content.message}</p>}
+                            </div>
 
                             <button
                                 type="submit"

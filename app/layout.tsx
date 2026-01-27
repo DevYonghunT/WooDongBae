@@ -9,6 +9,10 @@ import Header from "@/components/Header";
 import PushNotificationButton from "@/components/PushNotificationButton";
 import LoginModal from "@/components/LoginModal";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
+import { ToastProvider } from "@/components/Toast";
+import { GlobalLoadingBar } from "@/components/GlobalLoadingBar";
+import { Analytics } from "@vercel/analytics/react";
+import { Providers } from "./providers";
 
 const notoSansKr = Noto_Sans_KR({
   subsets: ["latin"],
@@ -75,53 +79,62 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body className={`${notoSansKr.variable} font-sans bg-stone-50 text-stone-700 antialiased relative`}>
-        {/* 서비스 워커 강제 등록 */}
-        <ServiceWorkerRegister />
+        <Providers>
+          {/* 전역 Toast 알림 */}
+          <ToastProvider />
+          {/* 페이지 전환 로딩 바 */}
+          <GlobalLoadingBar />
+          {/* 서비스 워커 강제 등록 */}
+          <ServiceWorkerRegister />
 
-        {/* 👇 [추가] 모달을 전역 배치 */}
-        <LoginModal />
+          {/* 👇 [추가] 모달을 전역 배치 */}
+          <LoginModal />
 
-        {/* 구글 애널리틱스 (Google tag) */}
-        <Script
-          async
-          src="https://www.googletagmanager.com/gtag/js?id=G-NNDKQ3G8J5"
-        />
-        <Script id="google-analytics">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
+          {/* 구글 애널리틱스 (Google tag) */}
+          <Script
+            async
+            src="https://www.googletagmanager.com/gtag/js?id=G-NNDKQ3G8J5"
+          />
+          <Script id="google-analytics">
+            {`
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
 
-            gtag('config', 'G-NNDKQ3G8J5');
-          `}
-        </Script>
+              gtag('config', 'G-NNDKQ3G8J5');
+            `}
+          </Script>
 
-        {/* 구글 애드센스 */}
-        <Script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3362378426446704"
-          crossOrigin="anonymous"
-          strategy="afterInteractive"
-        />
-        <meta name="google-adsense-account" content="ca-pub-3362378426446704"></meta>
+          {/* 구글 애드센스 */}
+          <Script
+            async
+            src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3362378426446704"
+            crossOrigin="anonymous"
+            strategy="afterInteractive"
+          />
+          <meta name="google-adsense-account" content="ca-pub-3362378426446704"></meta>
 
-        <Header />
+          <Header />
 
-        <main className="min-h-screen">
-          {children}
-        </main>
+          <main className="min-h-screen">
+            {children}
+          </main>
 
-        {/* Footer */}
-        <footer className="border-t border-border bg-surface py-12">
-          <div className="mx-auto max-w-7xl px-4 text-center text-gray-500 sm:px-6 lg:px-8">
-            <p className="text-sm">© 2025 우동배 (우리 동네 배움터). All rights reserved.</p>
-          </div>
-        </footer>
+          {/* Footer */}
+          <footer className="border-t border-border bg-surface py-12">
+            <div className="mx-auto max-w-7xl px-4 text-center text-gray-500 sm:px-6 lg:px-8">
+              <p className="text-sm">© 2025 우동배 (우리 동네 배움터). All rights reserved.</p>
+            </div>
+          </footer>
 
-        {/* 플로팅 버튼들 */}
-        <PushNotificationButton /> {/* 👈 [2. 추가] 여기에 넣었습니다! */}
-        <FeedbackWidget />
-        <ScrollToTopButton />
+          {/* 플로팅 버튼들 */}
+          <PushNotificationButton />
+          <FeedbackWidget />
+          <ScrollToTopButton />
+
+          {/* Vercel Analytics */}
+          <Analytics />
+        </Providers>
       </body>
     </html>
   );

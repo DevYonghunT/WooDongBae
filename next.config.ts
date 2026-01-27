@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import { createRequire } from "module";
+import { withSentryConfig } from "@sentry/nextjs";
 
 const require = createRequire(import.meta.url);
 const withPWA = require("next-pwa")({
@@ -12,6 +13,7 @@ const nextConfig: NextConfig = {
   images: {
     dangerouslyAllowSVG: true,
     contentDispositionType: 'attachment',
+    formats: ['image/avif', 'image/webp'],
     remotePatterns: [
       { protocol: 'https', hostname: 'images.unsplash.com', port: '', pathname: '/**' },
       { protocol: 'https', hostname: 'source.unsplash.com', port: '', pathname: '/**' },
@@ -33,16 +35,32 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        // 보안 헤더 (모든 페이지)
+        source: "/(.*)",
+        headers: [
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+        ],
+      },
+      {
+        // CORS 헤더 (API 라우트)
         source: "/api/:path*",
         headers: [
           { key: "Access-Control-Allow-Credentials", value: "true" },
-          { key: "Access-Control-Allow-Origin", value: "https://woodongbae.xyz" }, // 기본값 (실제 로직은 middleware에서 처리 권장하지만 요청대로 명시)
+          { key: "Access-Control-Allow-Origin", value: "https://woodongbae.xyz" },
           { key: "Access-Control-Allow-Methods", value: "GET,DELETE,PATCH,POST,PUT" },
           { key: "Access-Control-Allow-Headers", value: "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version" },
-        ]
-      }
+        ],
+      },
     ]
   }
 };
 
-export default withPWA(nextConfig);
+export default withSentryConfig(withPWA(nextConfig), {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  silent: !process.env.CI,
+  widenClientFileUpload: true,
+});

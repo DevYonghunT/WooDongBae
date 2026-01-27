@@ -9,10 +9,15 @@ export async function GET(request: NextRequest) {
     // [수정] 동적 origin 사용
     const origin = request.nextUrl.origin;
 
-    // 환경변수 가져오기
-    const KAKAO_CLIENT_ID = process.env.KAKAO_CLIENT_ID || "b6a8f2791cd23f7995b4fba26c649c20";
-    const KAKAO_CLIENT_SECRET = process.env.KAKAO_CLIENT_SECRET || "XRvHGAT4u5uZ3mcZaj80m5v8ol0E8sG4";
-    // const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https//www.woodongbae.xyz'; // Deprecated
+    // 환경변수에서 가져오기 (하드코딩 제거)
+    const KAKAO_CLIENT_ID = process.env.KAKAO_CLIENT_ID;
+    const KAKAO_CLIENT_SECRET = process.env.KAKAO_CLIENT_SECRET;
+
+    if (!KAKAO_CLIENT_ID || !KAKAO_CLIENT_SECRET) {
+        console.error("Missing Kakao OAuth environment variables");
+        return NextResponse.redirect(new URL('/?error=config_error', request.url));
+    }
+
     const REDIRECT_URI = `${origin}/api/kakao-callback`;
 
     if (!code) return NextResponse.redirect(new URL('/', request.url));

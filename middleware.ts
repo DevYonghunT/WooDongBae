@@ -1,7 +1,24 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { checkRateLimit } from '@/lib/rate-limiter'
 
 export async function middleware(request: NextRequest) {
+    // [Rate Limiting] API 라우트에 적용
+    if (request.nextUrl.pathname.startsWith('/api/')) {
+        const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+        const { allowed, remaining, resetAt } = checkRateLimit(ip, 100, 60000); // 분당 100회
+
+        if (!allowed) {
+            return new NextResponse('Too Many Requests', {
+                status: 429,
+                headers: {
+                    'Retry-After': String(Math.ceil((resetAt - Date.now()) / 1000)),
+                    'X-RateLimit-Remaining': '0',
+                },
+            });
+        }
+    }
+
     let response = NextResponse.next({
         request: { headers: request.headers },
     })
@@ -20,6 +37,13 @@ export async function middleware(request: NextRequest) {
     response.headers.set('Access-Control-Allow-Credentials', 'true');
     response.headers.set('Access-Control-Allow-Methods', 'GET,DELETE,PATCH,POST,PUT,OPTIONS');
     response.headers.set('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+
+    // [Rate Limiting] API 라우트 응답에 남은 횟수 헤더 추가
+    if (request.nextUrl.pathname.startsWith('/api/')) {
+        const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+        const { remaining } = checkRateLimit(ip, 100, 60000);
+        response.headers.set('X-RateLimit-Remaining', String(remaining));
+    }
 
     const supabase = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -49,9 +73,9 @@ export async function middleware(request: NextRequest) {
         if (!user) {
             return NextResponse.redirect(new URL('/', request.url))
         }
-        // 2. 관리자 이메일이 아니면 홈으로 (본인 이메일로 변경 필수!)
-        const ADMIN_EMAIL = "devyongt@gmail.com";
-        if (user.email !== ADMIN_EMAIL) {
+        // 2. 관리자 이메일이 아니면 홈으로 (환경변수에서 읽기)
+        const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
+        if (!ADMIN_EMAIL || user.email !== ADMIN_EMAIL) {
             return NextResponse.redirect(new URL('/', request.url))
         }
     }

@@ -18,5 +18,23 @@ export async function setCSRFToken(): Promise<string> {
 
 export async function verifyCSRFToken(token: string): Promise<boolean> {
     const storedToken = (await cookies()).get("csrf-token")?.value;
-    return storedToken === token && token.length === 64;
+
+    // 기본 유효성 검사
+    if (!storedToken || !token || token.length !== 64) {
+        return false;
+    }
+
+    // 타이밍 공격 방지: constant-time comparison
+    try {
+        const tokenBuffer = Buffer.from(token, "hex");
+        const storedBuffer = Buffer.from(storedToken, "hex");
+
+        if (tokenBuffer.length !== storedBuffer.length) {
+            return false;
+        }
+
+        return crypto.timingSafeEqual(tokenBuffer, storedBuffer);
+    } catch {
+        return false;
+    }
 }

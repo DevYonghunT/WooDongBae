@@ -1,3 +1,5 @@
+import { useId } from "react";
+
 export function CourseSkeleton() {
     return (
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 animate-pulse">
@@ -9,10 +11,12 @@ export function CourseSkeleton() {
 }
 
 export function SkeletonList({ count = 6 }: { count?: number }) {
+    const baseId = useId();
+
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {Array.from({ length: count }).map((_, i) => (
-                <CourseSkeleton key={i} />
+                <CourseSkeleton key={`${baseId}-skeleton-${i}`} />
             ))}
         </div>
     );

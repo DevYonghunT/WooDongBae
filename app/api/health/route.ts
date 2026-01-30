@@ -8,16 +8,31 @@ export async function GET() {
         timestamp: new Date().toISOString(),
     };
 
-    try {
-        const supabase = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY!
-        );
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+    if (!supabaseUrl || !supabaseKey) {
+        checks.database = "config_error";
+        return NextResponse.json(checks, { status: 503 });
+    }
+
+    try {
+        const supabase = createClient(supabaseUrl, supabaseKey);
         const { error } = await supabase.from("courses").select("id").limit(1);
-        checks.database = error ? "error" : "ok";
-    } catch {
+
+        if (error) {
+            checks.database = "error";
+            if (process.env.NODE_ENV !== "production") {
+                console.error("[Health Check] DB Error:", error.message);
+            }
+        } else {
+            checks.database = "ok";
+        }
+    } catch (err) {
         checks.database = "error";
+        if (process.env.NODE_ENV !== "production") {
+            console.error("[Health Check] Exception:", err);
+        }
     }
 
     const allOk = checks.api === "ok" && checks.database === "ok";

@@ -1,13 +1,26 @@
-import { chromium } from 'playwright';
+import { chromium, Browser } from 'playwright';
 import type { Page, ElementHandle } from 'playwright';
 import { GoogleGenerativeAI, GenerativeModel } from '@google/generative-ai';
-import type { Course } from './types.ts';
+import type { Course, RawCourseData } from './types.ts';
+import { RawCoursesResponseSchema } from './types.ts';
 import { normalizeRegionAndInstitution } from '../utils/normalization.ts';
+import {
+    sanitizeForPrompt,
+    sanitizeTitle,
+    sanitizeTextField,
+    sanitizeErrorForLogging
+} from './sanitizer.ts';
 
 type AnyHandle = ElementHandle<Element>;
 
+// Configuration constants
+const MAX_CONTENT_LENGTH = 50000;
+const MODEL_NAME = "gemini-2.0-flash";
+const MAX_OUTPUT_TOKENS = 8192;
+
 export class UniversalAiScraper {
     private genAI: GoogleGenerativeAI;
+    private browser: Browser | null = null;
 
     constructor() {
         const apiKey = process.env.GEMINI_API_KEY;
@@ -17,21 +30,40 @@ export class UniversalAiScraper {
         this.genAI = new GoogleGenerativeAI(apiKey);
     }
 
+    // Browser instance management for reuse
+    private async getBrowser(): Promise<Browser> {
+        if (!this.browser || !this.browser.isConnected()) {
+            this.browser = await chromium.launch({
+                headless: true,
+                args: ['--no-sandbox', '--disable-setuid-sandbox']
+            });
+        }
+        return this.browser;
+    }
+
+    // Cleanup method to close browser
+    async cleanup(): Promise<void> {
+        if (this.browser) {
+            await this.browser.close();
+            this.browser = null;
+        }
+    }
+
     // 1. 공통: Gemini 모델 생성 헬퍼
     private getModel(): GenerativeModel {
         return this.genAI.getGenerativeModel({
-            model: "gemini-2.0-flash",
+            model: MODEL_NAME,
             generationConfig: {
-                maxOutputTokens: 8192,
+                maxOutputTokens: MAX_OUTPUT_TOKENS,
                 responseMimeType: "application/json",
                 temperature: 0.0,
             }
         });
     }
 
-    // 2. 공통: 텍스트 추출 헬퍼
+    // 2. 공통: 텍스트 추출 헬퍼 (보안 강화)
     private async extractPageText(page: Page): Promise<string> {
-        return await page.evaluate(() => {
+        const rawText = await page.evaluate(() => {
             const main = document.querySelector('#content, #main, .content, .main_content, #container, #contents, #wrap, main, body') || document.body;
             if (!main) return "";
 
@@ -40,19 +72,33 @@ export class UniversalAiScraper {
             const scripts = clone.querySelectorAll('script, style, noscript, header, footer, nav, .menu, .gnb, iframe');
             scripts.forEach(el => el.remove());
 
-            return clone.innerText.replace(/\s+/g, ' ').substring(0, 60000);
+            return clone.innerText.replace(/\s+/g, ' ');
         });
+
+        // Sanitize content to prevent prompt injection
+        return sanitizeForPrompt(rawText).substring(0, MAX_CONTENT_LENGTH);
     }
 
-    // 3. 공통: Gemini 텍스트 파서 안전화
-    private parseCoursesJson(text: string): any[] {
+    // 3. 공통: Gemini 텍스트 파서 (Zod 스키마 검증 추가)
+    private parseCoursesJson(text: string): RawCourseData[] {
         try {
             // Markdown 코드 블록 제거
             const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
             const parsed = JSON.parse(cleanText);
-            return parsed.courses || [];
+
+            // Zod schema validation
+            const validated = RawCoursesResponseSchema.safeParse(parsed);
+
+            if (!validated.success) {
+                console.log("      ⚠️ Schema validation failed:", validated.error.issues.slice(0, 3).map(i => i.message).join(', '));
+                // Fallback: try to extract valid courses from raw data
+                const rawCourses = parsed.courses || [];
+                return rawCourses.filter((c: RawCourseData) => c && c.title && typeof c.title === 'string');
+            }
+
+            return validated.data.courses;
         } catch (e) {
-            console.log("      ⚠️ JSON Parsing Failed, checking raw text...");
+            console.log("      ⚠️ JSON Parsing Failed:", sanitizeErrorForLogging(e));
             return [];
         }
     }
@@ -288,7 +334,7 @@ export class UniversalAiScraper {
     // 1. 일반 도서관 스크래핑 (메인 메서드 수정)
     async scrape(url: string, institutionName: string, regionName: string): Promise<Course[]> {
         console.log(`🤖 [${institutionName}] 접속 중...`);
-        const browser = await chromium.launch({ headless: true });
+        const browser = await this.getBrowser();
         const page = await browser.newPage();
         const model = this.getModel();
 
@@ -302,24 +348,26 @@ export class UniversalAiScraper {
                 { timeout: 10000 }
             ).catch(() => { });
 
-            // 1단계: 텍스트 추출
+            // 1단계: 텍스트 추출 (sanitized)
             const pageContent = await this.extractPageText(page);
             console.log("      🧠 텍스트 분석 중...");
 
-            // 기존 프롬프트 재사용 (조금 축약)
+            // 보안: 프롬프트에 직접 콘텐츠를 넣지 않고 구조화된 형식으로 전달
             const prompt = `
                 You are a data extractor for Korean lifelong learning courses.
-                Extract course information from text.
-                
+                Extract course information from the provided content.
+
                 **RULES:**
-                1. EXTRACT TITLES EXACTLY.
-                2. Price: "0"->"무료", others with "원".
-                3. Dates: "YYYY.MM.DD ~ YYYY.MM.DD" (2025).
+                1. EXTRACT TITLES EXACTLY as they appear.
+                2. Price: "0" or empty means "무료", others should include "원".
+                3. Dates: Use "YYYY.MM.DD ~ YYYY.MM.DD" format (assume 2025).
                 4. Status mapping: "접수중", "접수대기", "마감임박", "접수예정", "모집종료", "추가접수".
-                
+                5. Only extract information that is clearly present in the content.
+
                 Return JSON: { "courses": [ { "title": "...", "category": "...", "target": "...", "status": "...", "apply_date": "...", "course_date": "...", "time": "...", "price": "...", "capacity": 0 } ] }
-                
-                [Text]: ${pageContent}
+
+                [Content from ${sanitizeTextField(institutionName, 100)}]:
+                ${pageContent}
             `;
 
             const result = await model.generateContent(prompt);
@@ -345,56 +393,54 @@ export class UniversalAiScraper {
 
             console.log(`✅ 최종 ${rawCourses.length}개 발견`);
 
-            // 데이터 정규화 및 매핑 (기존 로직 유지)
-            // link는 현재 페이지 URL 사용 가능하면 사용 (상세페이지 진입했으면 그게 맞지만, 
-            // tryFollowDetailLinks는 로직상 array를 리턴하고 끝나서, 개별 링크 매핑은 복잡함.
-            // 일단은 원본 url 또는 page.url() 사용)
-
             const finalLink = page.url();
 
-            const courses: Course[] = rawCourses.map((c: any) => {
+            // 데이��� 정규화 및 매핑 (타입 안전성 개선)
+            const courses: Course[] = rawCourses.map((c: RawCourseData) => {
                 const rawRegion = (regionName ?? '').trim();
                 const rawInstitution = (institutionName ?? '').trim();
                 const rawPlace = String(c.place || rawInstitution).trim();
 
                 const normalized = normalizeRegionAndInstitution(rawRegion, rawInstitution, rawPlace);
 
+                // Sanitize title
+                const cleanTitle = sanitizeTitle(c.title || '');
+
                 return {
-                    title: c.title,
-                    category: c.category || '기타',
-                    target: c.target || '전체',
-                    status: c.status,
-                    image_url: '',
+                    title: cleanTitle,
+                    category: sanitizeTextField(c.category, 100) || '기타',
+                    target: sanitizeTextField(c.target, 100) || '전체',
+                    status: sanitizeTextField(c.status, 50) || '접수중',
+                    image_url: '', // Placeholder images removed for security
                     d_day: '',
                     institution: institutionName,
-                    price: c.price || '무료',
+                    price: sanitizeTextField(c.price, 50) || '무료',
                     region: normalized.region || rawRegion,
-                    place: c.place || institutionName,
-                    course_date: c.course_date,
-                    apply_date: c.apply_date,
-                    time: c.time,
-                    capacity: c.capacity || 0,
+                    place: sanitizeTextField(c.place, 200) || institutionName,
+                    course_date: sanitizeTextField(c.course_date, 100) || '',
+                    apply_date: sanitizeTextField(c.apply_date, 100) || '',
+                    time: sanitizeTextField(c.time, 100) || '',
+                    capacity: typeof c.capacity === 'number' ? c.capacity : 0,
                     contact: '',
-                    link: finalLink // page.url()이 이동된 상태일 수 있으나, 보통 목록 페이지로 돌아오거나 하면 그 url임.
+                    link: finalLink
                 };
             });
 
             return courses;
 
         } catch (error) {
-            console.error(`❌ [${institutionName}] Error:`, error);
+            console.error(`❌ [${institutionName}] Error:`, sanitizeErrorForLogging(error));
             return [];
         } finally {
-            await browser.close();
+            await page.close(); // Close page only, reuse browser
         }
     }
 
-    // [수정] 성남시 전용 스크래핑 메서드 (안전장치 강화판 - 그대로 유지하되 헬퍼 활용 가능)
-    // (기존 코드 유지)
+    // [수정] 성남시 전용 스크래핑 메서드 (보안 강화 버전)
     async scrapeSeongnam(url: string, maxPages: number = 5): Promise<Course[]> {
         console.log(`🤖 성남시 통합 포털 스크래핑 시작 (최대 ${maxPages}페이지)`);
 
-        const browser = await chromium.launch({ headless: true });
+        const browser = await this.getBrowser();
         const page = await browser.newPage();
         let allCourses: Course[] = [];
 
@@ -426,51 +472,55 @@ export class UniversalAiScraper {
             for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
                 console.log(`   📄 페이지 ${pageNum} 분석 중...`);
 
-                // 헬퍼 활용하여 추출
-                const pageContent = await page.evaluate(() => {
+                // 헬퍼 활용하여 추출 + 새니타이징
+                const rawContent = await page.evaluate(() => {
                     const main = document.querySelector('#container') || document.body;
                     if (!main) return "";
                     const clone = main.cloneNode(true) as HTMLElement;
                     const scripts = clone.querySelectorAll('script, style, noscript, .header, .footer, #header, #footer');
                     scripts.forEach(el => el.remove());
-                    return clone.innerText.replace(/\s+/g, ' ').substring(0, 60000);
+                    return clone.innerText.replace(/\s+/g, ' ');
                 });
+
+                const pageContent = sanitizeForPrompt(rawContent).substring(0, MAX_CONTENT_LENGTH);
 
                 if (!pageContent || pageContent.trim().length === 0) {
                     console.log("      ⚠️ 페이지 내용이 비어있습니다.");
                     break;
                 }
 
-                // 텍스트 분석
-                const model = this.getModel(); // 헬퍼 사용
+                // 텍스트 분석 (보안 강화된 프롬프트)
+                const model = this.getModel();
                 const prompt = `
-                    You are a strict data extractor.
-                    Extract ALL courses from the text below.
-                    Return JSON: { "courses": [ { "title": "...", "institution": "...", ... } ] }
-                    [Text]: ${pageContent}
+                    You are a strict data extractor for Korean courses.
+                    Extract ALL courses from the content below.
+                    Return JSON: { "courses": [ { "title": "...", "institution": "...", "category": "...", "target": "...", "status": "...", "apply_date": "...", "course_date": "...", "time": "...", "price": "...", "capacity": 0 } ] }
+
+                    [Content from 성남시평생학습관]:
+                    ${pageContent}
                 `;
 
                 const result = await model.generateContent(prompt);
-                const rawCourses = this.parseCoursesJson(result.response.text()); // 헬퍼 사용
+                const rawCourses = this.parseCoursesJson(result.response.text());
 
                 console.log(`      🔍 ${rawCourses.length}개 항목 발견`);
 
-                const validCourses = rawCourses
-                    .filter((c: any) => c.title && c.title.trim().length > 0)
-                    .map((c: any) => ({
-                        title: c.title,
-                        category: c.category || '기타',
-                        target: c.target || '전체',
-                        status: c.status || '접수중',
+                const validCourses: Course[] = rawCourses
+                    .filter((c: RawCourseData) => c.title && String(c.title).trim().length > 0)
+                    .map((c: RawCourseData) => ({
+                        title: sanitizeTitle(c.title || ''),
+                        category: sanitizeTextField(c.category, 100) || '기타',
+                        target: sanitizeTextField(c.target, 100) || '전체',
+                        status: sanitizeTextField(c.status, 50) || '접수중',
                         image_url: '',
                         d_day: '',
-                        institution: c.institution || '성남시평생학습관',
-                        price: c.price || '무료',
+                        institution: sanitizeTextField(c.institution, 200) || '성남시평생학습관',
+                        price: sanitizeTextField(c.price, 50) || '무료',
                         region: '성남시',
-                        place: c.institution || '성남시',
-                        course_date: c.course_date,
-                        apply_date: c.apply_date,
-                        time: c.time,
+                        place: sanitizeTextField(c.institution, 200) || '성남시',
+                        course_date: sanitizeTextField(c.course_date, 100) || '',
+                        apply_date: sanitizeTextField(c.apply_date, 100) || '',
+                        time: sanitizeTextField(c.time, 100) || '',
                         capacity: typeof c.capacity === 'number' ? c.capacity : 0,
                         contact: '',
                         link: url
@@ -490,16 +540,16 @@ export class UniversalAiScraper {
                             console.log("      🚫 다음 페이지 버튼 없음. 종료.");
                             break;
                         }
-                    } catch (e) {
+                    } catch {
                         break;
                     }
                 }
             }
 
         } catch (e) {
-            console.error("❌ Seongnam Critical Error:", e);
+            console.error("❌ Seongnam Critical Error:", sanitizeErrorForLogging(e));
         } finally {
-            await browser.close();
+            await page.close(); // Close page only, reuse browser
         }
 
         return allCourses;

@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 export interface Course {
     title: string;       // 강좌명
     category: string;    // 분류
@@ -23,3 +25,52 @@ export interface TargetSite {
     url: string;
     isSeongnam?: boolean;
 }
+
+// Raw course data from Gemini AI response
+export interface RawCourseData {
+    title?: string;
+    category?: string;
+    target?: string;
+    status?: string;
+    apply_date?: string;
+    course_date?: string;
+    time?: string;
+    price?: string;
+    capacity?: number | string;
+    place?: string;
+    institution?: string;
+}
+
+// Zod schema for validating raw course data from AI
+export const RawCourseSchema = z.object({
+    title: z.string().min(1).max(500),
+    category: z.string().max(100).optional().default('기타'),
+    target: z.string().max(100).optional().default('전체'),
+    status: z.string().max(50).optional().default('접수중'),
+    apply_date: z.string().max(100).optional(),
+    course_date: z.string().max(100).optional(),
+    time: z.string().max(100).optional(),
+    price: z.string().max(50).optional().default('무료'),
+    capacity: z.union([z.number(), z.string()]).optional().transform(val => {
+        if (typeof val === 'number') return val;
+        if (typeof val === 'string') {
+            const parsed = parseInt(val, 10);
+            return isNaN(parsed) ? 0 : parsed;
+        }
+        return 0;
+    }),
+    place: z.string().max(200).optional(),
+    institution: z.string().max(200).optional(),
+});
+
+export const RawCoursesResponseSchema = z.object({
+    courses: z.array(RawCourseSchema).default([]),
+});
+
+// Valid status values
+export const VALID_STATUSES = [
+    '접수중', '접수대기', '마감임박', '마감',
+    '접수예정', '모집종료', '추가접수'
+] as const;
+
+export type ValidStatus = typeof VALID_STATUSES[number];

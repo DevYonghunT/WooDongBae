@@ -1,9 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 import * as dotenv from 'dotenv';
 import path from 'path';
-import { fileURLToPath } from 'url'; // [주석 해제] url 모듈 사용
+import { fileURLToPath } from 'url';
 import { UniversalAiScraper } from './ai-scraper.ts';
-import { fetchAndSaveSeoulData } from './seoul-api.ts'; // [추가] 서울시 API 함수 임포트
+import { fetchAndSaveSeoulData } from './seoul-api.ts';
+import { sanitizeErrorForLogging } from './sanitizer.ts';
 
 
 
@@ -540,7 +541,7 @@ async function main() {
                 console.log("⚠️ 데이터를 찾지 못했습니다 (빈 목록).");
             }
         } catch (err) {
-            console.error(`❌ [${site.name}] 에러 발생:`, err);
+            console.error(`❌ [${site.name}] 에러 발생:`, sanitizeErrorForLogging(err));
         }
 
         // AI API 호출 제한 방지 (2초 대기)
@@ -548,7 +549,8 @@ async function main() {
         await new Promise(resolve => setTimeout(resolve, 2000));
     }
 
-
+    // Cleanup: 브라우저 인스턴스 정리
+    await scraper.cleanup();
 
     console.log("\n🎉 모든 크롤링 및 API 동기화 작업이 완료되었습니다!");
 

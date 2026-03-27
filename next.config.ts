@@ -25,10 +25,13 @@ const nextConfig: NextConfig = {
     ],
   },
   async rewrites() {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+    const apiKey = process.env.NEXT_PUBLIC_API_KEY;
+    if (!apiUrl || !apiKey) return [];
     return [
       {
         source: '/api/proxy/courses',
-        destination: `${process.env.NEXT_PUBLIC_API_URL}?serviceKey=${process.env.NEXT_PUBLIC_API_KEY}&numOfRows=100&pageNo=1`,
+        destination: `${apiUrl}?serviceKey=${apiKey}&numOfRows=100&pageNo=1`,
       },
     ];
   },

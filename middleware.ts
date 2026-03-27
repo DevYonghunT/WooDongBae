@@ -24,7 +24,7 @@ export async function middleware(request: NextRequest) {
     })
 
     // [CORS 설정] 요청된 Origin이 허용 목록에 있으면 해당 Origin으로 설정
-    const allowedOrigins = ['http://localhost:3000', 'https://woodongbae.xyz', 'https://www.woodongbae.xyz'];
+    const allowedOrigins = ['http://localhost:3000', 'http://localhost:3100', 'http://woodongbae.xyz', 'http://www.woodongbae.xyz', 'https://woodongbae.xyz', 'https://www.woodongbae.xyz'];
     const origin = request.headers.get('origin');
 
     if (origin && allowedOrigins.includes(origin)) {
@@ -45,9 +45,15 @@ export async function middleware(request: NextRequest) {
         response.headers.set('X-RateLimit-Remaining', String(remaining));
     }
 
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!supabaseUrl || !supabaseKey) {
+        return response;
+    }
+
     const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        supabaseUrl,
+        supabaseKey,
         {
             cookies: {
                 get(name: string) { return request.cookies.get(name)?.value },

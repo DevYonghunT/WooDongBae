@@ -24,7 +24,7 @@ export default async function Home() {
       <section className="relative w-full bg-gradient-to-b from-primary-100/40 via-gray-50 to-gray-50 pt-32 pb-20 text-center">
 
         {/* 장식용 배경 요소 */}
-        <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-primary-200/20 rounded-full blur-3xl -z-10 pointer-events-none" />
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-primary-200/20 rounded-full blur-3xl -z-10 pointer-events-none hidden md:block" />
 
         <div className="relative mx-auto max-w-5xl px-6 lg:px-8">
           <span className="inline-flex items-center gap-2 rounded-full bg-white border border-primary-200 px-4 py-1.5 text-sm font-bold text-primary-700 shadow-sm mb-6">
